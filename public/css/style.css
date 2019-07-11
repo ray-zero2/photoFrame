@@ -1,0 +1,23 @@
+.canvas {
+  display: block;
+  background-color: #eee;
+  margin: 10px auto;
+}
+
+.camera {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #f40000;
+  margin: 10px auto;
+  object-fit: cover;
+}
+
+.capture-button {
+  padding: 10px;
+  border-radius: 10px;
+  display: block;
+  margin: 10px auto 0;
+}
