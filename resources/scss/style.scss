@@ -14,12 +14,33 @@
     right: 0;
     background-color: #f40000;
     margin: 10px auto;
-    object-fit: cover;
+    // object-fit: cover;
   }
 
   .capture-button{
-    padding: 10px;
+    padding: 20px;
     border-radius: 10px;
     display: block;
     margin: 10px auto 0;
+  }
+  .resize-button-wrapper{
+    display: flex;
+    justify-content: center;
+  }
+  .resize-button{
+    padding: 15px;
+    border-radius: 10px;
+    display: block;
+    text-align: center;
+    margin: 20px;
+  }
+
+  .js-hide{
+    display: none;
+    visibility: hidden;
+  }
+
+  .js-shutter-animation{
+    opacity: 0.3;
+    transition: 0.5s;
   }
