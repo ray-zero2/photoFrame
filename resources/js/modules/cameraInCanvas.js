@@ -21,9 +21,11 @@ export default class {
     this.imageWidth = 300;
     this.imageHeight = 300;
     this.scale = 1;
+    this.scale_past = 1;
     // this.trimmingRate = 1;
     this.imagePosition = { x: 0, y: 0 };
     this.imagePosition_past = { x: 0, y: 0 };
+    this.imageGeometricCenter = { x: 0, y: 0 };
     this.pointerPosition = {
       startX: 0,
       startY: 0,
@@ -57,10 +59,12 @@ export default class {
 
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', event => {
+      this.scale_past = this.scale;
       this.scale *= 1.1;
       this.render();
     });
     this.$scaleDownButton.addEventListener('click', () => {
+      this.scale_past = this.scale;
       this.scale *= 0.9;
       this.render();
     });
@@ -109,7 +113,6 @@ export default class {
   }
 
   handleMouseDown(event) {
-    this.moveImageFlag = true;
     const START_X = event.screenX;
     const START_Y = event.screenY;
 
@@ -118,6 +121,9 @@ export default class {
     this.eventTarget = event.target;
     this.imagePosition_past.x = this.imagePosition.x;
     this.imagePosition_past.y = this.imagePosition.y;
+    console.log('pastPosition_x:' + this.imagePosition_past.x);
+
+    this.moveImageFlag = true;
   }
 
   handleMouseMove(event) {
@@ -129,12 +135,13 @@ export default class {
     this.diff.x = CURRENT_X - this.pointerPosition.startX;
     this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
-    const DISPLACEMENT_X = this.diff.x / this.scale;
-    const DISPLACEMENT_Y = this.diff.y / this.scale;
+    const DISPLACEMENT_X = this.diff.x; // this.scale;
+    const DISPLACEMENT_Y = this.diff.y; // this.scale;
 
     this.imagePosition.x = DISPLACEMENT_X + this.imagePosition_past.x;
     this.imagePosition.y = DISPLACEMENT_Y + this.imagePosition_past.y;
-    this.render();
+    console.log('displacePosition:' + this.imagePosition.x);
+    this.moveImage();
   }
 
   handleMouseUp(event) {
@@ -149,12 +156,40 @@ export default class {
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
+    const RENDER_WIDTH = this.imageWidth * this.scale;
+    const RENDER_HEIGHT = this.imageHeight * this.scale;
+
+    this.imageGeometricCenter.x =
+      this.imagePosition.x + (this.imageWidth * this.scale_past) / 2;
+    this.imageGeometricCenter.y =
+      this.imagePosition.y + (this.imageHeight * this.scale_past) / 2;
+
+    const CENTER_DIFF_X = this.imageGeometricCenter.x - 150; //150: キャンバスサイズの半分
+    const CENTER_DIFF_Y = this.imageGeometricCenter.y - 150;
+
     const RENDER_POINT_X =
-      this.imagePosition.x * this.scale +
-      (this.imageWidth * (1 - this.scale)) / 2;
+      (this.scale / this.scale_past) * CENTER_DIFF_X - RENDER_WIDTH / 2 + 150;
+
     const RENDER_POINT_Y =
-      this.imagePosition.y * this.scale +
-      (this.imageHeight * (1 - this.scale)) / 2;
+      (this.scale / this.scale_past) * CENTER_DIFF_Y - RENDER_HEIGHT / 2 + 150;
+
+    this.context.drawImage(
+      this.$offScreen,
+      RENDER_POINT_X,
+      RENDER_POINT_Y,
+      RENDER_WIDTH,
+      RENDER_HEIGHT
+    );
+    this.imagePosition.x = RENDER_POINT_X;
+    this.imagePosition.y = RENDER_POINT_Y;
+  }
+
+  moveImage() {
+    this.context.clearRect(0, 0, 300, 300);
+    this.offScreenContext.putImageData(this.originalImage, 0, 0);
+
+    const RENDER_POINT_X = this.imagePosition.x;
+    const RENDER_POINT_Y = this.imagePosition.y;
     const RENDER_WIDTH = this.imageWidth * this.scale;
     const RENDER_HEIGHT = this.imageHeight * this.scale;
     this.context.drawImage(
@@ -166,5 +201,6 @@ export default class {
     );
     // this.imagePosition.x = RENDER_POINT_X;
     // this.imagePosition.y = RENDER_POINT_Y;
+    console.log('RENDER_POINT_X:' + this.imagePosition.x);
   }
 }
