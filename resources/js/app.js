@@ -1,7 +1,9 @@
-// import slider from './modules/slider';
+import camera from './modules/cameraInCanvas';
+// import editing from './modules/canvasEditing';
 class App {
   constructor() {
-    // new slider();
+    new camera();
+    // new editing();
   }
 }
 new App();
