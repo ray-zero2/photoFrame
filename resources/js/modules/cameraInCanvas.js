@@ -1,3 +1,15 @@
+class Sticker {
+  constructor(stickerNum, zIndexNum) {
+    this.src = `/public/images/sticker/sticker${stickerNum}.png`;
+    this.leftTopPoint = { x: 100, y: 100 };
+    this.leftBottomPoint = { x: 100, y: 200 };
+    this.rightTopPoint = { x: 200, y: 100 };
+    this.rightBottomPoint = { x: 200, y: 200 };
+    this.zIndex = zIndexNum;
+    this.isActive = false;
+  }
+}
+
 export default class {
   constructor() {
     //キャンバス
@@ -10,11 +22,22 @@ export default class {
     this.$offScreen.height = this.$canvas.height;
     this.offScreenContext = this.$offScreen.getContext('2d');
 
+    this.$backImageScreen = document.createElement('canvas');
+    this.$backImageScreen.width = this.$canvas.width;
+    this.$backImageScreen.height = this.$canvas.height;
+    this.backImageScreenContext = this.$backImageScreen.getContext('2d');
+
     //その他の要素取得
     this.$video = document.querySelector('.camera');
     this.$captureButton = document.querySelector('.js-capture');
     this.$scaleUpButton = document.querySelector('.js-scaleUp');
     this.$scaleDownButton = document.querySelector('.js-scaleDown');
+    this.$scaleOkButton = document.querySelector('.js-scaleOk');
+
+    this.$stickerWrapper = document.querySelector('.sticker-wrapper');
+    this.$stickers = document.querySelectorAll('.js-sticker');
+
+    this.phase = 1; //フェーズ番号1〜3
 
     //変数等
     this.originalImage = null;
@@ -34,6 +57,10 @@ export default class {
     };
     this.diff = { x: 0, y: 0 };
     this.moveImageFlag = false;
+    this.moveStickerFlag = false;
+
+    this.stickerId = 1;
+    this.stickersOnCanvas = [];
 
     this.startCamera();
     this.bind();
@@ -43,6 +70,7 @@ export default class {
     //画面キャプチャ
     this.$captureButton.addEventListener('click', () => {
       this.renderCameraImageInCanvas();
+      this.phase = 2;
     });
 
     this.$canvas.addEventListener('mousedown', event => {
@@ -60,13 +88,29 @@ export default class {
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', event => {
       this.scale_past = this.scale;
-      this.scale *= 1.1;
-      this.render();
+      this.scale *= 1.2;
+      this.resize();
     });
     this.$scaleDownButton.addEventListener('click', () => {
       this.scale_past = this.scale;
-      this.scale *= 0.9;
-      this.render();
+      this.scale *= 0.8;
+      this.resize();
+    });
+    this.$scaleOkButton.addEventListener('click', () => {
+      this.$scaleUpButton.classList.add('js-hide');
+      this.$scaleDownButton.classList.add('js-hide');
+      this.$scaleOkButton.classList.add('js-hide');
+      this.$stickerWrapper.classList.remove('js-hide');
+      this.originalImage = this.context.getImageData(0, 0, 300, 300);
+      this.backImageScreenContext.putImageData(this.originalImage, 0, 0);
+      this.phase = 3;
+    });
+
+    //sticker
+    [...this.$stickers].forEach(element => {
+      element.addEventListener('click', event => {
+        this.handleStickerClick(element, event);
+      });
     });
   }
 
@@ -106,6 +150,7 @@ export default class {
     this.$captureButton.classList.add('js-hide');
     this.$scaleUpButton.classList.remove('js-hide');
     this.$scaleDownButton.classList.remove('js-hide');
+    this.$scaleOkButton.classList.remove('js-hide');
     ////////////////////////////////////////////////
 
     this.stopCamera();
@@ -113,15 +158,30 @@ export default class {
   }
 
   handleMouseDown(event) {
-    const START_X = event.screenX;
-    const START_Y = event.screenY;
-
-    this.pointerPosition.startX = START_X;
-    this.pointerPosition.startY = START_Y;
-    this.eventTarget = event.target;
-    this.imagePosition_past.x = this.imagePosition.x;
-    this.imagePosition_past.y = this.imagePosition.y;
-    console.log('pastPosition_x:' + this.imagePosition_past.x);
+    if (this.phase === 2) {
+      const START_X = event.screenX;
+      const START_Y = event.screenY;
+      this.pointerPosition.startX = START_X;
+      this.pointerPosition.startY = START_Y;
+      this.eventTarget = event.target;
+      this.imagePosition_past.x = this.imagePosition.x;
+      this.imagePosition_past.y = this.imagePosition.y;
+      console.log('pastPosition_x:' + this.imagePosition_past.x);
+    } else if (this.phase === 3) {
+      this.stickersOnCanvas.forEach(stickerObj => {
+        if (
+          stickerObj.leftTopPoint.x <= event.offsetX &&
+          event.offsetX <= stickerObj.rightBottomPoint.x &&
+          event.offsetY <= stickerObj.rightBottomPoint.y &&
+          stickerObj.leftTopPoint.y <= event.offsetY
+        ) {
+          this.moveStickerFlag = true;
+          console.log('onSticker');
+        } else {
+          console.log('notOnSticker');
+        }
+      });
+    }
 
     this.moveImageFlag = true;
   }
@@ -137,22 +197,26 @@ export default class {
 
     const DISPLACEMENT_X = this.diff.x; // this.scale;
     const DISPLACEMENT_Y = this.diff.y; // this.scale;
-
-    this.imagePosition.x = DISPLACEMENT_X + this.imagePosition_past.x;
-    this.imagePosition.y = DISPLACEMENT_Y + this.imagePosition_past.y;
-    console.log('displacePosition:' + this.imagePosition.x);
-    this.moveImage();
+    if (this.phase === 2) {
+      this.imagePosition.x = DISPLACEMENT_X + this.imagePosition_past.x;
+      this.imagePosition.y = DISPLACEMENT_Y + this.imagePosition_past.y;
+      console.log('displacePosition:' + this.imagePosition.x);
+      this.moveImage();
+    } else if (this.phase === 3 && this.moveStickerFlag) {
+      this.moveSticker();
+    }
   }
 
   handleMouseUp(event) {
     this.moveImageFlag = false;
+    this.moveStickerFlag = false;
     this.pointerPosition.startX = 0;
     this.pointerPosition.startY = 0;
     this.pointerPosition.currentX = 0;
     this.pointerPosition.currentY = 0;
   }
 
-  render() {
+  resize() {
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
@@ -199,8 +263,104 @@ export default class {
       RENDER_WIDTH,
       RENDER_HEIGHT
     );
-    // this.imagePosition.x = RENDER_POINT_X;
-    // this.imagePosition.y = RENDER_POINT_Y;
     console.log('RENDER_POINT_X:' + this.imagePosition.x);
+  }
+
+  moveSticker() {
+    console.log('pass');
+  }
+
+  handleStickerClick(element, event) {
+    this.addSticker(element);
+    this.renderSticker();
+  }
+
+  addSticker(element) {
+    const newSticker = new Sticker(element.dataset.stickerNum, this.stickerId);
+    this.stickersOnCanvas.push(newSticker);
+    this.stickerId++;
+    console.log(this.stickersOnCanvas);
+  }
+
+  renderSticker() {
+    console.log(this);
+    this.offScreenContext.clearRect(0, 0, 300, 300);
+    this.offScreenContext.drawImage(this.$backImageScreen, 0, 0, 300, 300);
+    let img = new Image();
+    this.stickersOnCanvas.forEach(stickerObj => {
+      img.src = stickerObj.src;
+      this.offScreenContext.drawImage(
+        img,
+        stickerObj.leftTopPoint.x,
+        stickerObj.leftTopPoint.y,
+        stickerObj.rightTopPoint.x - stickerObj.leftTopPoint.x,
+        stickerObj.leftBottomPoint.y - stickerObj.leftTopPoint.y
+      );
+      this.drawFrameLine(stickerObj);
+      this.drawCornerMark(stickerObj);
+    });
+    this.context.clearRect(0, 0, 300, 300);
+    this.context.drawImage(this.$offScreen, 0, 0, 300, 300);
+  }
+
+  drawFrameLine(stickerObj) {
+    this.offScreenContext.strokeStyle = 'white';
+
+    this.offScreenContext.beginPath();
+    this.offScreenContext.strokeRect(
+      stickerObj.leftTopPoint.x,
+      stickerObj.leftTopPoint.y,
+      stickerObj.rightTopPoint.x - stickerObj.leftTopPoint.x,
+      stickerObj.leftBottomPoint.y - stickerObj.leftTopPoint.y
+    );
+  }
+  drawCornerMark(stickerObj) {
+    let markSize = 2;
+    this.offScreenContext.strokeStyle = 'black';
+    this.offScreenContext.fillStyle = 'white';
+
+    this.offScreenContext.beginPath();
+    this.offScreenContext.arc(
+      stickerObj.leftTopPoint.x,
+      stickerObj.leftTopPoint.y,
+      markSize,
+      0,
+      Math.PI * 2,
+      false
+    );
+    this.offScreenContext.stroke();
+
+    this.offScreenContext.beginPath();
+    this.offScreenContext.arc(
+      stickerObj.leftBottomPoint.x,
+      stickerObj.leftBottomPoint.y,
+      markSize,
+      0,
+      Math.PI * 2,
+      false
+    );
+    this.offScreenContext.stroke();
+
+    this.offScreenContext.beginPath();
+    this.offScreenContext.arc(
+      stickerObj.rightTopPoint.x,
+      stickerObj.rightTopPoint.y,
+      markSize,
+      0,
+      Math.PI * 2,
+      false
+    );
+    this.offScreenContext.stroke();
+
+    this.offScreenContext.beginPath();
+    this.offScreenContext.arc(
+      stickerObj.rightBottomPoint.x,
+      stickerObj.rightBottomPoint.y,
+      markSize,
+      0,
+      Math.PI * 2,
+      false
+    );
+    this.offScreenContext.stroke();
   }
 }

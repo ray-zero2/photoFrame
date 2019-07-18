@@ -1,4 +1,9 @@
 @charset "UTF-8";
+img{
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 
   .canvas{
     display: block;
@@ -39,6 +44,15 @@
     margin: 20px;
   }
 
+  .sticker-wrapper ul{
+    display: flex;
+    width: 60vw;
+    margin: 20px auto;
+  }
+
+  .sticker{
+    border: 1px solid #333;
+  }
   .js-hide{
     display: none;
     visibility: hidden;
