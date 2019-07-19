@@ -3,7 +3,6 @@ class Sticker {
     this.id = idNumber;
     this.src = `/public/images/sticker/sticker${stickerNum}.png`;
     this.leftTopPoint = { x: 100, y: 100 };
-    this.rightBottomPoint = { x: 200, y: 200 };
     this.width = 100;
     this.height = 100;
     this.scale = 1;
@@ -37,6 +36,7 @@ export default class {
 
     this.$stickerWrapper = document.querySelector('.sticker-wrapper');
     this.$stickers = document.querySelectorAll('.js-sticker');
+    this.$removeStickerButton = document.querySelector('.js-removeSticker');
 
     this.phase = 1; //フェーズ番号1〜3
 
@@ -46,7 +46,7 @@ export default class {
     this.imageHeight = 300;
     this.scale = 1;
     this.scale_past = 1;
-    // this.trimmingRate = 1;
+
     this.imagePosition = { x: 0, y: 0 };
     this.imagePosition_past = { x: 0, y: 0 };
     this.imageGeometricCenter = { x: 0, y: 0 };
@@ -64,7 +64,6 @@ export default class {
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
     this.selectedStickerIds = []; //クリック時にマウス下にあるスタンプ画像のid
     this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
-    this.indexOperatedSticker = 0; //動かすステッカーの配列番号を格納
     this.stickerPosition_past = { x: 0, y: 0 };
 
     this.startCamera();
@@ -82,7 +81,7 @@ export default class {
       this.handleMouseDown(event);
     });
 
-    document.addEventListener('mousemove', event => {
+    this.$canvas.addEventListener('mousemove', event => {
       this.handleMouseMove(event);
     });
 
@@ -93,12 +92,12 @@ export default class {
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', event => {
       this.scale_past = this.scale;
-      this.scale *= 1.2;
+      this.scale *= 1.1;
       this.resize();
     });
     this.$scaleDownButton.addEventListener('click', () => {
       this.scale_past = this.scale;
-      this.scale *= 0.8;
+      this.scale *= 0.9;
       this.resize();
     });
     this.$scaleOkButton.addEventListener('click', () => {
@@ -106,6 +105,7 @@ export default class {
       this.$scaleDownButton.classList.add('js-hide');
       this.$scaleOkButton.classList.add('js-hide');
       this.$stickerWrapper.classList.remove('js-hide');
+      this.$removeStickerButton.classList.remove('js-hide');
       this.originalImage = this.context.getImageData(0, 0, 300, 300);
       this.backImageScreenContext.putImageData(this.originalImage, 0, 0);
       this.phase = 3;
@@ -116,6 +116,11 @@ export default class {
       element.addEventListener('click', event => {
         this.handleClickStickerList(element, event);
       });
+    });
+
+    this.$removeStickerButton.addEventListener('click', () => {
+      this.stickersOnCanvas.splice(this.stickersOnCanvas.length - 1, 1);
+      this.renderStickers();
     });
   }
 
@@ -187,7 +192,7 @@ export default class {
         }
       });
       if (this.moveStickerFlag) {
-        this.decideOperatedSticker();
+        this.decideOperatedSticker(event);
         this.renderStickers();
       }
     }
@@ -210,12 +215,11 @@ export default class {
       // console.log('displacePosition:' + this.imagePosition.x);
       this.moveImage();
     } else if (this.phase === 3 && this.moveStickerFlag) {
-      console.log('diff:' + this.diff.x);
       this.operateSticker();
     }
   }
 
-  handleMouseUp(event) {
+  handleMouseUp() {
     this.isTouched = false;
     this.moveStickerFlag = false;
     this.selectedStickerIds.length = 0;
@@ -225,31 +229,38 @@ export default class {
     this.pointerPosition.currentY = 0;
   }
 
-  decideOperatedSticker() {
-    // const ARRAY_SELECTED_ID = this.selectedStickerIds;
-    // const ARRAY_STICKER_ON_CANVAS = this.stickersOnCanvas;
+  decideOperatedSticker(event) {
+    //クリックした地点にアクティブなスタンプがあるかどうか
     const MATCHED_STICKER_ID = this.selectedStickerIds.find(
       id => id === this.activeStickerId
     );
 
+    //アクティブスタンプがなければ配列の最後に近いスタンプをアクティブにする
     if (MATCHED_STICKER_ID === undefined) {
       const ARRAY_LAST_NUM = this.selectedStickerIds.length - 1;
       this.activeStickerId = this.selectedStickerIds[ARRAY_LAST_NUM];
     }
 
-    this.indexOperatedSticker = this.stickersOnCanvas.findIndex(stickerObj => {
-      return stickerObj.id === this.activeStickerId;
-    });
+    //現在アクティブ状態のスタンプが何番目の配列に入っているか取得
+    const INDEX_OPERATED_STICKER = this.stickersOnCanvas.findIndex(
+      stickerObj => {
+        return stickerObj.id === this.activeStickerId;
+      }
+    );
 
+    //アクティブなスタンプを配列の最後に移動
+    const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[INDEX_OPERATED_STICKER];
+    this.stickersOnCanvas.splice(INDEX_OPERATED_STICKER, 1);
+    this.stickersOnCanvas.push(ACTIVE_STICKER_OBJ);
+
+    //アクティブなスタンプの初期位置を保持
     this.stickerPosition_past.x = this.stickersOnCanvas[
-      this.indexOperatedSticker
+      this.stickersOnCanvas.length - 1
     ].leftTopPoint.x;
 
     this.stickerPosition_past.y = this.stickersOnCanvas[
-      this.indexOperatedSticker
+      this.stickersOnCanvas.length - 1
     ].leftTopPoint.y;
-
-    console.log('pastSticker Position' + this.stickerPosition_past.x);
   }
   operateSticker() {
     this.moveSticker();
@@ -306,16 +317,12 @@ export default class {
   }
 
   moveSticker() {
-    this.stickersOnCanvas[this.indexOperatedSticker].leftTopPoint.x =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
       this.diff.x + this.stickerPosition_past.x;
 
-    this.stickersOnCanvas[this.indexOperatedSticker].leftTopPoint.y =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
       this.diff.y + this.stickerPosition_past.y;
 
-    // console.log(
-    //   'leftTopPoint_x' +
-    //   this.stickersOnCanvas[this.indexOperatedSticker].leftTopPoint.x
-    // );
     this.renderStickers();
   }
 
@@ -327,67 +334,62 @@ export default class {
   addSticker(element) {
     const newSticker = new Sticker(element.dataset.stickerNum, this.stickerId);
     this.stickersOnCanvas.push(newSticker);
-    // this.setActiveSticker(this.stickerId);
     this.activeStickerId = this.stickerId;
     this.stickerId++;
-    console.log(this.stickersOnCanvas);
+    // console.log(this.stickersOnCanvas);
   }
 
   renderStickers() {
+    //オフスクリーンに描画
     this.offScreenContext.clearRect(0, 0, 300, 300);
     this.offScreenContext.drawImage(this.$backImageScreen, 0, 0, 300, 300);
     let img = new Image();
-    this.stickersOnCanvas.forEach(stickerObj => {
-      img.src = stickerObj.src;
-      this.offScreenContext.drawImage(
-        img,
-        stickerObj.leftTopPoint.x,
-        stickerObj.leftTopPoint.y,
-        stickerObj.width,
-        stickerObj.height
-      );
-      if (stickerObj.id === this.activeStickerId) {
-        this.drawFrameLine(stickerObj);
-        this.drawCornerMark(
-          stickerObj.leftTopPoint.x,
-          stickerObj.leftTopPoint.y
-        );
-        this.drawCornerMark(
-          stickerObj.leftTopPoint.x,
-          stickerObj.leftTopPoint.y + stickerObj.height
-        );
-        this.drawCornerMark(
-          stickerObj.leftTopPoint.x + stickerObj.width,
-          stickerObj.leftTopPoint.y + stickerObj.height
-        );
-        this.drawCornerMark(
-          stickerObj.leftTopPoint.x + stickerObj.width,
-          stickerObj.leftTopPoint.y
-        );
+
+    //枠線の色とマークの大きさ
+    let color = 'grey';
+    let size = 2;
+
+    //スタンプの配列を描画
+    for (let i = 0; i < this.stickersOnCanvas.length; i++) {
+      //最後のスタンプ(アクティブ)のみ枠線の色とマークの大きさ変更
+      if (i === this.stickersOnCanvas.length - 1) {
+        color = 'white';
+        size = 3;
       }
-    });
+
+      img.src = this.stickersOnCanvas[i].src;
+      let x = this.stickersOnCanvas[i].leftTopPoint.x,
+        y = this.stickersOnCanvas[i].leftTopPoint.y,
+        width = this.stickersOnCanvas[i].width,
+        height = this.stickersOnCanvas[i].height;
+
+      this.offScreenContext.drawImage(img, x, y, width, height);
+      this.drawFrameLine(x, y, width, height, color);
+      this.drawCornerMark(x, y, width, height, size);
+    }
+
+    //まとめてキャンバスへ描画
     this.context.clearRect(0, 0, 300, 300);
     this.context.drawImage(this.$offScreen, 0, 0, 300, 300);
   }
 
-  drawFrameLine(stickerObj) {
-    this.offScreenContext.strokeStyle = 'white';
-
+  drawFrameLine(x, y, width, height, color) {
+    this.offScreenContext.strokeStyle = color;
     this.offScreenContext.beginPath();
-    this.offScreenContext.strokeRect(
-      stickerObj.leftTopPoint.x,
-      stickerObj.leftTopPoint.y,
-      stickerObj.width,
-      stickerObj.height
-    );
+    this.offScreenContext.strokeRect(x, y, width, height);
   }
-  drawCornerMark(x, y) {
-    let markSize = 2;
+  drawCornerMark(x, y, width, height, size) {
     this.offScreenContext.strokeStyle = 'black';
     this.offScreenContext.fillStyle = 'white';
+    this.drawArc(x, y, size);
+    this.drawArc(x, y + height, size);
+    this.drawArc(x + width, y, size);
+    this.drawArc(x + width, y + height, size);
+  }
 
+  drawArc(x, y, size) {
     this.offScreenContext.beginPath();
-    this.offScreenContext.arc(x, y, markSize, 0, Math.PI * 2, false);
+    this.offScreenContext.arc(x, y, size, 0, Math.PI * 2, false);
     this.offScreenContext.stroke();
   }
 }
