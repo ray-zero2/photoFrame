@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "js-cookie": "^2.2.0",
+    "regenerator-runtime": "^0.13.2",
     "velocity-animate": "^1.5.2"
   }
 }
