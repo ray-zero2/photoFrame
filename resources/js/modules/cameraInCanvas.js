@@ -5,8 +5,7 @@ class Sticker {
     this.leftTopPoint = { x: 100, y: 100 };
     this.width = 100;
     this.height = 100;
-    this.scale = 1;
-    // this.isActive = false;
+    this.scale = { x: 1, y: 1 };
   }
 }
 
@@ -37,6 +36,7 @@ export default class {
     this.$stickerWrapper = document.querySelector('.sticker-wrapper');
     this.$stickers = document.querySelectorAll('.js-sticker');
     this.$removeStickerButton = document.querySelector('.js-removeSticker');
+    this.$createImageButton = document.querySelector('.js-createImageButton');
 
     this.phase = 1; //フェーズ番号1〜3
 
@@ -62,9 +62,23 @@ export default class {
 
     this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
-    this.selectedStickerIds = []; //クリック時にマウス下にあるスタンプ画像のid
     this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
     this.stickerPosition_past = { x: 0, y: 0 };
+
+    //メンバ変数だけど定数扱いに
+    this.RANGE_OFFSET = 5; //クリック範囲のオフセット
+
+    //ライン上クリックの判定に必要な定数
+    this.LEFT_LINE = 1;
+    this.BOTTOM_LINE = 2;
+    this.RIGHT_LINE = 4;
+    this.TOP_LINE = 8;
+    this.LEFT_TOP_POINT = this.LEFT_LINE + this.TOP_LINE;
+    this.LEFT_BOTTOM_POINT = this.LEFT_LINE + this.BOTTOM_LINE;
+    this.RIGHT_BOTTOM_POINT = this.RIGHT_LINE + this.BOTTOM_LINE;
+    this.RIGHT_TOP_POINT = this.RIGHT_LINE + this.TOP_LINE;
+
+    this.clickProperty = 0;
 
     this.startCamera();
     this.bind();
@@ -106,6 +120,8 @@ export default class {
       this.$scaleOkButton.classList.add('js-hide');
       this.$stickerWrapper.classList.remove('js-hide');
       this.$removeStickerButton.classList.remove('js-hide');
+      this.$createImageButton.classList.remove('js-hide');
+
       this.originalImage = this.context.getImageData(0, 0, 300, 300);
       this.backImageScreenContext.putImageData(this.originalImage, 0, 0);
       this.phase = 3;
@@ -144,7 +160,7 @@ export default class {
 
   stopCamera() {
     const TRACKS = this.$video.srcObject.getTracks();
-    TRACKS.forEach(function(track) {
+    TRACKS.forEach(function (track) {
       track.stop();
     });
     this.$video.srcObject = null;
@@ -177,20 +193,7 @@ export default class {
       this.imagePosition_past.y = this.imagePosition.y;
       console.log('pastPosition_x:' + this.imagePosition_past.x);
     } else if (this.phase === 3) {
-      this.stickersOnCanvas.forEach(stickerObj => {
-        if (
-          stickerObj.leftTopPoint.x <= event.offsetX &&
-          event.offsetX <= stickerObj.leftTopPoint.x + stickerObj.width &&
-          event.offsetY <= stickerObj.leftTopPoint.y + stickerObj.height &&
-          stickerObj.leftTopPoint.y <= event.offsetY
-        ) {
-          this.selectedStickerIds.push(stickerObj.id);
-          this.moveStickerFlag = true;
-          console.log('onSticker');
-        } else {
-          console.log('notOnSticker');
-        }
-      });
+      this.moveStickerFlag = this.judgeWhereClickOnTheSticker(event);
       if (this.moveStickerFlag) {
         this.decideOperatedSticker(event);
         this.renderStickers();
@@ -198,6 +201,109 @@ export default class {
     }
 
     this.isTouched = true;
+  }
+
+  /**
+   * スタンプをクリックしているかを調べ、アクティブなスタンプをクリックしていればそのクリック箇所も調べる
+   * @param {object} クリックイベント
+   * @return {boolean} いずれかのスタンプ上をクリックしていればtrueを返す
+   */
+  judgeWhereClickOnTheSticker(event) {
+    let onStickerFlag = false;
+
+    for (let i = 0; i < this.stickersOnCanvas.length; i++) {
+      const STICKER_OBJ = this.stickersOnCanvas[i];
+      let minPointX = STICKER_OBJ.leftTopPoint.x;
+      let maxPointX = STICKER_OBJ.leftTopPoint.x + STICKER_OBJ.width;
+      let minPointY = STICKER_OBJ.leftTopPoint.y;
+      let maxPointY = STICKER_OBJ.leftTopPoint.y + STICKER_OBJ.height;
+
+      //最後のスタンプ（現アクティブスタンプ）のみクリック範囲拡大
+      if (i === this.stickersOnCanvas.length - 1) {
+        minPointX -= this.RANGE_OFFSET;
+        maxPointX += this.RANGE_OFFSET;
+        minPointY -= this.RANGE_OFFSET;
+        maxPointY += this.RANGE_OFFSET;
+      }
+
+      //クリック地点がどのステッカーの上にあるか捜査
+      if (
+        minPointX <= event.offsetX &&
+        event.offsetX <= maxPointX &&
+        minPointY <= event.offsetY &&
+        event.offsetY <= maxPointY
+      ) {
+        this.activeStickerId = STICKER_OBJ.id;
+        if (i === this.stickersOnCanvas.length - 1) {
+          this.judgeClickOnTheLine(
+            event,
+            minPointX,
+            maxPointX,
+            minPointY,
+            maxPointY
+          );
+        }
+        console.log('onSticker');
+        onStickerFlag = true;
+      } else {
+        console.log('notOnSticker');
+      }
+    }
+    return onStickerFlag;
+  }
+
+  /**
+   * アクティブなスタンプのライン上がクリックされたかどうかを調べ、そのクリック箇所を割り出す
+   * @param {object} mouseDownEvent マウスダウンイベント
+   * @param {int} minPointX 枠線のx最小値
+   * @param {int} maxPointX 枠線のx最大値
+   * @param {int} minPointY 枠線のy最小値
+   * @param {int} maxPointY 枠線のy最大値
+   */
+  judgeClickOnTheLine(
+    mouseDownEvent,
+    minPointX,
+    maxPointX,
+    minPointY,
+    maxPointY
+  ) {
+    this.judgeLeftLine(mouseDownEvent.offsetX, minPointX);
+    this.judgeBottomLine(mouseDownEvent.offsetY, maxPointY);
+    this.judgeRightLine(mouseDownEvent.offsetX, maxPointX);
+    this.judgeTopLine(mouseDownEvent.offsetY, minPointY);
+  }
+
+  judgeLeftLine(clickPointX, minPointX) {
+    if (
+      minPointX <= clickPointX &&
+      clickPointX <= minPointX + this.RANGE_OFFSET * 2
+    ) {
+      this.clickProperty += this.LEFT_LINE;
+    }
+  }
+  judgeBottomLine(clickPointY, maxPointY) {
+    if (
+      maxPointY - this.RANGE_OFFSET * 2 <= clickPointY &&
+      clickPointY <= maxPointY
+    ) {
+      this.clickProperty += this.BOTTOM_LINE;
+    }
+  }
+  judgeRightLine(clickPointX, maxPointX) {
+    if (
+      maxPointX - this.RANGE_OFFSET * 2 <= clickPointX &&
+      clickPointX <= maxPointX
+    ) {
+      this.clickProperty += this.RIGHT_LINE;
+    }
+  }
+  judgeTopLine(clickPointY, minPointY) {
+    if (
+      minPointY <= clickPointY &&
+      clickPointY <= minPointY + this.RANGE_OFFSET * 2
+    ) {
+      this.clickProperty += this.TOP_LINE;
+    }
   }
 
   handleMouseMove(event) {
@@ -212,42 +318,65 @@ export default class {
     if (this.phase === 2) {
       this.imagePosition.x = this.diff.x + this.imagePosition_past.x;
       this.imagePosition.y = this.diff.y + this.imagePosition_past.y;
-      // console.log('displacePosition:' + this.imagePosition.x);
       this.moveImage();
     } else if (this.phase === 3 && this.moveStickerFlag) {
       this.operateSticker();
     }
   }
 
+  /**
+   * ステッカーのクリックした箇所に対応する処理を実行
+   */
+  operateSticker() {
+    switch (this.clickProperty) {
+      case this.LEFT_LINE:
+        console.log('left line');
+        break;
+      case this.BOTTOM_LINE:
+        console.log('bottom line');
+        break;
+      case this.RIGHT_LINE:
+        console.log('right line');
+        break;
+      case this.TOP_LINE:
+        console.log('top line');
+        break;
+      case this.LEFT_TOP_POINT:
+        console.log('left top point');
+        break;
+      case this.LEFT_BOTTOM_POINT:
+        console.log('left bottom point');
+        break;
+      case this.RIGHT_BOTTOM_POINT:
+        console.log('right bottom point');
+        break;
+      case this.RIGHT_TOP_POINT:
+        console.log('right top point');
+        break;
+      default:
+        this.moveSticker();
+        break;
+    }
+  }
+
   handleMouseUp() {
     this.isTouched = false;
     this.moveStickerFlag = false;
-    this.selectedStickerIds.length = 0;
     this.pointerPosition.startX = 0;
     this.pointerPosition.startY = 0;
     this.pointerPosition.currentX = 0;
     this.pointerPosition.currentY = 0;
+    console.log(this.clickProperty);
+    this.clickProperty = 0;
   }
 
   decideOperatedSticker(event) {
-    //クリックした地点にアクティブなスタンプがあるかどうか
-    const MATCHED_STICKER_ID = this.selectedStickerIds.find(
-      id => id === this.activeStickerId
-    );
-
-    //アクティブスタンプがなければ配列の最後に近いスタンプをアクティブにする
-    if (MATCHED_STICKER_ID === undefined) {
-      const ARRAY_LAST_NUM = this.selectedStickerIds.length - 1;
-      this.activeStickerId = this.selectedStickerIds[ARRAY_LAST_NUM];
-    }
-
     //現在アクティブ状態のスタンプが何番目の配列に入っているか取得
     const INDEX_OPERATED_STICKER = this.stickersOnCanvas.findIndex(
       stickerObj => {
         return stickerObj.id === this.activeStickerId;
       }
     );
-
     //アクティブなスタンプを配列の最後に移動
     const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[INDEX_OPERATED_STICKER];
     this.stickersOnCanvas.splice(INDEX_OPERATED_STICKER, 1);
@@ -261,9 +390,6 @@ export default class {
     this.stickerPosition_past.y = this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
     ].leftTopPoint.y;
-  }
-  operateSticker() {
-    this.moveSticker();
   }
 
   resize() {
@@ -360,8 +486,10 @@ export default class {
       img.src = this.stickersOnCanvas[i].src;
       let x = this.stickersOnCanvas[i].leftTopPoint.x,
         y = this.stickersOnCanvas[i].leftTopPoint.y,
-        width = this.stickersOnCanvas[i].width,
-        height = this.stickersOnCanvas[i].height;
+        width =
+          this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale.x,
+        height =
+          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale.y;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
       this.drawFrameLine(x, y, width, height, color);
