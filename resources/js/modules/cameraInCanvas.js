@@ -140,6 +140,11 @@ export default class {
       this.stickersOnCanvas.splice(this.stickersOnCanvas.length - 1, 1);
       this.renderStickers();
     });
+
+    this.$createImageButton.addEventListener('click', () => {
+      this.renderOutputImage();
+      this.createImage();
+    });
   }
 
   startCamera() {
@@ -162,7 +167,7 @@ export default class {
 
   stopCamera() {
     const TRACKS = this.$video.srcObject.getTracks();
-    TRACKS.forEach(function(track) {
+    TRACKS.forEach(function (track) {
       track.stop();
     });
     this.$video.srcObject = null;
@@ -611,5 +616,31 @@ export default class {
     this.offScreenContext.beginPath();
     this.offScreenContext.arc(x, y, size, 0, Math.PI * 2, false);
     this.offScreenContext.stroke();
+  }
+  renderOutputImage() {
+    //オフスクリーンに描画
+    this.offScreenContext.clearRect(0, 0, 300, 300);
+    this.offScreenContext.drawImage(this.$backImageScreen, 0, 0, 300, 300);
+    let img = new Image();
+
+    //スタンプの配列を描画
+    for (let i = 0; i < this.stickersOnCanvas.length; i++) {
+      img.src = this.stickersOnCanvas[i].src;
+      let x = this.stickersOnCanvas[i].leftTopPoint.x,
+        y = this.stickersOnCanvas[i].leftTopPoint.y,
+        width = this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale,
+        height =
+          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale;
+
+      this.offScreenContext.drawImage(img, x, y, width, height);
+    }
+    //まとめてキャンバスへ描画
+    this.context.clearRect(0, 0, 300, 300);
+    this.context.drawImage(this.$offScreen, 0, 0, 300, 300);
+  }
+  createImage() {
+    let png = this.$canvas.toDataURL();
+    document.querySelector('.image').src = png;
+    document.querySelector('.image-wrapper').classList.remove('js-hide');
   }
 }

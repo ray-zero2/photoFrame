@@ -19,11 +19,21 @@ img{
     top: 0;
     left: 0;
     right: 0;
-    background-color: #f40000;
     margin: 10px auto;
     width: 300px;
     height: 300px;
     // object-fit: cover;
+  }
+
+  .image-wrapper{
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 10px auto;
+    width: 300px;
+    height: 300px;
   }
 
   .capture-button{
