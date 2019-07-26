@@ -67,7 +67,7 @@ export default class {
     this.stickerScale_past = 1;
     this.stickerSize_past = { width: 0, height: 0 };
 
-    //メンバ変数だけど定数扱いに
+    //メンバ変数だけど一旦定数扱いに
     this.RANGE_OFFSET = 5; //クリック範囲のオフセット
 
     //ライン上クリックの判定に必要な定数
@@ -143,7 +143,11 @@ export default class {
 
     this.$createImageButton.addEventListener('click', () => {
       this.renderOutputImage();
+      this.$stickerWrapper.classList.add('js-hide');
+      this.$removeStickerButton.classList.add('js-hide');
+      this.$createImageButton.classList.add('js-hide');
       this.createImage();
+      document.querySelector('.image-wrapper').classList.remove('js-hide');
     });
   }
 
@@ -641,6 +645,5 @@ export default class {
   createImage() {
     let png = this.$canvas.toDataURL();
     document.querySelector('.image').src = png;
-    document.querySelector('.image-wrapper').classList.remove('js-hide');
   }
 }
