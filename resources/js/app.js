@@ -11,7 +11,7 @@ class Sticker {
 }
 class App {
   constructor() {
-    new camera();
+    this.camera = new camera();
     //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
@@ -28,8 +28,6 @@ class App {
     this.backImageScreenContext = this.$backImageScreen.getContext('2d');
 
     //その他の要素取得
-    this.$video = document.querySelector('.camera');
-    this.$captureButton = document.querySelector('.js-capture');
     this.$scaleUpButton = document.querySelector('.js-scaleUp');
     this.$scaleDownButton = document.querySelector('.js-scaleDown');
     this.$scaleOkButton = document.querySelector('.js-scaleOk');
@@ -83,15 +81,17 @@ class App {
 
     this.clickProperty = 0;
 
-    this.startCamera();
     this.bind();
   }
 
   bind() {
     //画面キャプチャ
-    this.$captureButton.addEventListener('click', () => {
-      this.renderCameraImageInCanvas();
+    this.camera.on('renderCameraImage', canvasData => {
       this.phase = 2;
+      this.$scaleUpButton.classList.remove('js-hide');
+      this.$scaleDownButton.classList.remove('js-hide');
+      this.$scaleOkButton.classList.remove('js-hide');
+      this.originalImage = canvasData.getImageData(0, 0, 300, 300);
     });
 
     this.$canvas.addEventListener('mousedown', event => {
@@ -152,48 +152,48 @@ class App {
     });
   }
 
-  startCamera() {
-    const MEDIA = navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width: 300,
-        height: 300
-      },
-      audio: false
-    });
+  // startCamera() {
+  //   const MEDIA = navigator.mediaDevices.getUserMedia({
+  //     video: {
+  //       facingMode: 'environment',
+  //       width: 300,
+  //       height: 300
+  //     },
+  //     audio: false
+  //   });
 
-    MEDIA.then(stream => {
-      this.$video.srcObject = stream;
-    }).catch(error => {
-      console.log(this.$video);
-      alert(error);
-    });
-  }
+  //   MEDIA.then(stream => {
+  //     this.$video.srcObject = stream;
+  //   }).catch(error => {
+  //     console.log(this.$video);
+  //     alert(error);
+  //   });
+  // }
 
-  stopCamera() {
-    const TRACKS = this.$video.srcObject.getTracks();
-    TRACKS.forEach(function(track) {
-      track.stop();
-    });
-    this.$video.srcObject = null;
-  }
+  // stopCamera() {
+  //   const TRACKS = this.$video.srcObject.getTracks();
+  //   TRACKS.forEach(function(track) {
+  //     track.stop();
+  //   });
+  //   this.$video.srcObject = null;
+  // }
 
-  renderCameraImageInCanvas() {
-    const VIDEO_WIDTH = this.$video.offsetWidth;
-    const VIDEO_HEIGHT = this.$video.offsetHeight;
-    this.context.drawImage(this.$video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
-    this.$video.classList.add('js-hide');
+  // renderCameraImageInCanvas() {
+  //   const VIDEO_WIDTH = this.$video.offsetWidth;
+  //   const VIDEO_HEIGHT = this.$video.offsetHeight;
+  //   this.context.drawImage(this.$video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
+  //   this.$video.classList.add('js-hide');
 
-    //表示ボタンの入れ替え/////////////////////
-    this.$captureButton.classList.add('js-hide');
-    this.$scaleUpButton.classList.remove('js-hide');
-    this.$scaleDownButton.classList.remove('js-hide');
-    this.$scaleOkButton.classList.remove('js-hide');
-    ////////////////////////////////////////////////
+  //   //表示ボタンの入れ替え/////////////////////
+  //   this.$captureButton.classList.add('js-hide');
+  //   this.$scaleUpButton.classList.remove('js-hide');
+  //   this.$scaleDownButton.classList.remove('js-hide');
+  //   this.$scaleOkButton.classList.remove('js-hide');
+  //   ////////////////////////////////////////////////
 
-    this.stopCamera();
-    this.originalImage = this.context.getImageData(0, 0, 300, 300);
-  }
+  //   this.stopCamera();
+  //   this.originalImage = this.context.getImageData(0, 0, 300, 300);
+  // }
 
   handleMouseDown(event) {
     const START_X = event.screenX;
