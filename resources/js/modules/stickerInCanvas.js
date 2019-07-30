@@ -41,8 +41,7 @@ export default class extends Events {
       currentY: 0
     };
     this.diff = { x: 0, y: 0 };
-    this.isTouched = false;
-    this.moveStickerFlag = false;
+    this.isStickerTouched = false;
     this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
     this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
@@ -109,15 +108,15 @@ export default class extends Events {
     const START_Y = event.screenY;
     this.pointerPosition.startX = START_X;
     this.pointerPosition.startY = START_Y;
-    this.moveStickerFlag = this.judgeWhereClickOnTheSticker(event);
-    if (this.moveStickerFlag) {
+    this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
+    if (this.isStickerTouched) {
       this.decideOperatedSticker(event);
       this.renderStickers();
     }
   }
 
   handleMouseMove(event) {
-    if (this.moveStickerFlag === false) return;
+    if (this.isStickerTouched === false) return;
     const CURRENT_X = event.screenX;
     const CURRENT_Y = event.screenY;
     this.pointerPosition.currentX = CURRENT_X;
@@ -126,16 +125,15 @@ export default class extends Events {
     this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
     this.operateSticker();
+    this.renderStickers();
   }
 
   handleMouseUp() {
-    this.isTouched = false;
-    this.moveStickerFlag = false;
+    this.isStickerTouched = false;
     this.pointerPosition.startX = 0;
     this.pointerPosition.startY = 0;
     this.pointerPosition.currentX = 0;
     this.pointerPosition.currentY = 0;
-
     this.clickProperty = 0;
   }
   /**
@@ -240,6 +238,7 @@ export default class extends Events {
       this.clickProperty += this.TOP_LINE;
     }
   }
+
   /**
    * ステッカーのクリックした箇所に対応する処理を実行
    */
@@ -287,32 +286,29 @@ export default class extends Events {
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
       this.diff.y + this.stickerPosition_past.y;
-
-    this.renderStickers();
   }
 
   resizeSticker() {
     switch (this.clickProperty) {
       case this.LEFT_TOP_POINT:
-        console.log('left top point');
+        // console.log('left top point');
         this.resizeHandleLeftTop();
         break;
       case this.LEFT_BOTTOM_POINT:
-        console.log('left bottom point');
+        // console.log('left bottom point');
         this.resizeHandleLeftBottom();
         break;
       case this.RIGHT_BOTTOM_POINT:
-        console.log('right bottom point');
+        // console.log('right bottom point');
         this.resizeHandleRightBottom();
         break;
       case this.RIGHT_TOP_POINT:
-        console.log('right top point');
+        // console.log('right top point');
         this.resizeHandleRightTop();
         break;
       default:
         break;
     }
-    this.renderStickers();
   }
   resizeHandleLeftTop() {
     const ASPECT = 1;
