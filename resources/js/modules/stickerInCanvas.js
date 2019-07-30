@@ -27,7 +27,7 @@ export default class extends Events {
     this.$backImageScreen.height = this.$canvas.height;
     this.backImageScreenContext = this.$backImageScreen.getContext('2d');
     this.backImageScreenContext.putImageData(backgroundImage, 0, 0);
-    console.log(this.backImageScreenContext);
+    this.context.drawImage(this.$backImageScreen, 0, 0, 300, 300);
 
     this.$stickerWrapper = document.querySelector('.sticker-wrapper');
     this.$stickers = document.querySelectorAll('.js-sticker');
@@ -114,12 +114,10 @@ export default class extends Events {
       this.decideOperatedSticker(event);
       this.renderStickers();
     }
-
-    this.isTouched = true;
   }
 
   handleMouseMove(event) {
-    if (!this.isTouched) return;
+    if (this.moveStickerFlag === false) return;
     const CURRENT_X = event.screenX;
     const CURRENT_Y = event.screenY;
     this.pointerPosition.currentX = CURRENT_X;

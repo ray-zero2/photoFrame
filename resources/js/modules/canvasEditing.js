@@ -42,10 +42,24 @@ export default class extends Events {
     this.diff = { x: 0, y: 0 };
     this.isTouched = false;
 
+    this.handleFlag = true;
+
     this.bind();
   }
 
   bind() {
+    this.handlers = {
+      mousedown: this.handleMouseDown.bind(this),
+      mousemove: this.handleMouseMove.bind(this),
+      mouseup: this.handleMouseUp.bind(this)
+    };
+
+    this.$canvas.addEventListener('mousedown', this.handlers.mousedown);
+
+    this.$canvas.addEventListener('mousemove', this.handlers.mousemove);
+
+    document.addEventListener('mouseup', this.handlers.mouseup);
+
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', () => {
       this.scale_past = this.scale;
@@ -61,10 +75,41 @@ export default class extends Events {
       this.$scaleUpButton.classList.add('js-hide');
       this.$scaleDownButton.classList.add('js-hide');
       this.$scaleOkButton.classList.add('js-hide');
-
+      this.$canvas.removeEventListener('mousedown', this.handlers.mousedown);
+      this.$canvas.removeEventListener('mousemove', this.handlers.mousemove);
+      document.removeEventListener('mouseup', this.handlers.mouseup);
       this.emit('requestedRenderSticker', this.context);
-      // this.phase = 3;
     });
+  }
+
+  handleMouseDown(event) {
+    const START_X = event.screenX;
+    const START_Y = event.screenY;
+    this.pointerPosition.startX = START_X;
+    this.pointerPosition.startY = START_Y;
+    this.imagePosition_past.x = this.imagePosition.x;
+    this.imagePosition_past.y = this.imagePosition.y;
+    this.isTouched = true;
+  }
+
+  handleMouseMove(event) {
+    if (!this.isTouched) return;
+    const CURRENT_X = event.screenX;
+    const CURRENT_Y = event.screenY;
+    this.pointerPosition.currentX = CURRENT_X;
+    this.pointerPosition.currentY = CURRENT_Y;
+    this.diff.x = CURRENT_X - this.pointerPosition.startX;
+    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
+
+    this.moveImage();
+  }
+
+  handleMouseUp() {
+    this.isTouched = false;
+    this.pointerPosition.startX = 0;
+    this.pointerPosition.startY = 0;
+    this.pointerPosition.currentX = 0;
+    this.pointerPosition.currentY = 0;
   }
 
   resize() {
@@ -100,6 +145,8 @@ export default class extends Events {
   }
 
   moveImage() {
+    this.imagePosition.x = this.diff.x + this.imagePosition_past.x;
+    this.imagePosition.y = this.diff.y + this.imagePosition_past.y;
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
