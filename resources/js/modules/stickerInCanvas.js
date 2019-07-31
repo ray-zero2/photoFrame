@@ -37,8 +37,12 @@ export default class extends Events {
     this.pointerPosition = {
       startX: 0,
       startY: 0,
+      startSecondX: 0,
+      startSecondY: 0,
       currentX: 0,
-      currentY: 0
+      currentY: 0,
+      currentSecondX: 0,
+      currentSecondY: 0
     };
     this.diff = { x: 0, y: 0 };
     this.isStickerTouched = false;
@@ -81,6 +85,18 @@ export default class extends Events {
     document.addEventListener('mouseup', event => {
       this.handleMouseUp(event);
     });
+
+    // this.$canvas.addEventListener('touchstart', event => {
+    //   this.handleTouchStart(event);
+    // });
+
+    // this.$canvas.addEventListener('touchmove', event => {
+    //   this.handleTouchMove(event);
+    // });
+
+    // document.addEventListener('touchend', event => {
+    //   this.handleTouchEnd(event);
+    // });
     //sticker一覧
     [...this.$stickers].forEach(element => {
       element.addEventListener('click', event => {
