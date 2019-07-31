@@ -2,7 +2,7 @@ import Events from 'events';
 class Sticker {
   constructor(stickerNum, idNumber) {
     this.id = idNumber;
-    this.src = `/public/images/sticker/sticker${stickerNum}.png`;
+    this.src = `./images/sticker/sticker${stickerNum}.png`;
     this.leftTopPoint = { x: 100, y: 100 };
     this.width = 100;
     this.height = 100;
