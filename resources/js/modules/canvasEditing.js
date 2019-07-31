@@ -60,6 +60,9 @@ export default class extends Events {
 
     document.addEventListener('mouseup', this.handlers.mouseup);
 
+    this.$canvas.addEventListener('touchstart', this.handlers.mousedown);
+    this.$canvas.addEventListener('touchmove', this.handlers.mousemove);
+    document.addEventListener('touchend', this.handlers.mouseup);
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', () => {
       this.scale_past = this.scale;
@@ -78,13 +81,18 @@ export default class extends Events {
       this.$canvas.removeEventListener('mousedown', this.handlers.mousedown);
       this.$canvas.removeEventListener('mousemove', this.handlers.mousemove);
       document.removeEventListener('mouseup', this.handlers.mouseup);
+      this.$canvas.removeEventListener('touchstart', this.handlers.mousedown);
+      this.$canvas.removeEventListener('touchmove', this.handlers.mousemove);
+      document.removeEventListener('touchend', this.handlers.mouseup);
       this.emit('requestedRenderSticker', this.context);
     });
   }
 
   handleMouseDown(event) {
-    const START_X = event.screenX;
-    const START_Y = event.screenY;
+    const START_X =
+      event.type === 'touchstart' ? event.touches[0].screenX : event.screenX;
+    const START_Y =
+      event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
     this.pointerPosition.startX = START_X;
     this.pointerPosition.startY = START_Y;
     this.imagePosition_past.x = this.imagePosition.x;
@@ -94,8 +102,10 @@ export default class extends Events {
 
   handleMouseMove(event) {
     if (!this.isTouched) return;
-    const CURRENT_X = event.screenX;
-    const CURRENT_Y = event.screenY;
+    const CURRENT_X =
+      event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
+    const CURRENT_Y =
+      event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
     this.pointerPosition.currentX = CURRENT_X;
     this.pointerPosition.currentY = CURRENT_Y;
     this.diff.x = CURRENT_X - this.pointerPosition.startX;
