@@ -111,6 +111,7 @@ export default class extends Events {
     this.diff.x = CURRENT_X - this.pointerPosition.startX;
     this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
+    event.preventDefault();
     this.moveImage();
   }
 
