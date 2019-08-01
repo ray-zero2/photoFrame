@@ -43,11 +43,14 @@ export default class extends Events {
       currentSecondX: 0,
       currentSecondY: 0
     };
-    this.diff = { x: 0, y: 0 };
+    this.lastTranslateX = 0;
+    this.lastTranslateY = 0;
+    this.lastScreenX = 0;
+    this.lastScreenY = 0;
+    this.diffX = 0;
+    this.diffY = 0;
+
     this.isTouched = false;
-
-    this.handleFlag = true;
-
     this.bind();
   }
 
@@ -99,10 +102,10 @@ export default class extends Events {
   handleMouseDown(event) {
     const START_X = event.screenX;
     const START_Y = event.screenY;
-    this.pointerPosition.startX = START_X;
-    this.pointerPosition.startY = START_Y;
-    this.imagePosition_past.x = this.imagePosition.x;
-    this.imagePosition_past.y = this.imagePosition.y;
+    // this.pointerPosition.startX = START_X;
+    // this.pointerPosition.startY = START_Y;
+    this.lastScreenX = START_X;
+    this.lastScreenY = START_Y;
     this.isTouched = true;
   }
 
@@ -110,12 +113,17 @@ export default class extends Events {
     if (!this.isTouched) return;
     const CURRENT_X = event.screenX;
     const CURRENT_Y = event.screenY;
-    this.pointerPosition.currentX = CURRENT_X;
-    this.pointerPosition.currentY = CURRENT_Y;
-    this.diff.x = CURRENT_X - this.pointerPosition.startX;
-    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
+    this.diffX = CURRENT_X - this.lastScreenX;
+    this.diffY = CURRENT_Y - this.lastScreenY;
+
+    // this.pointerPosition.currentX = CURRENT_X;
+    // this.pointerPosition.currentY = CURRENT_Y;
+    this.lastTranslateX += this.diffX;
+    this.lastTranslateY += this.diffY;
 
     this.moveImage();
+    this.lastScreenX = CURRENT_X;
+    this.lastScreenY = CURRENT_Y;
   }
 
   handleMouseUp() {
@@ -128,6 +136,12 @@ export default class extends Events {
     this.pointerPosition.startSecondY = 0;
     this.pointerPosition.currentSecondX = 0;
     this.pointerPosition.currentSecondY = 0;
+    this.lastTranslateX = 0;
+    this.lastTranslateY = 0;
+    this.diffX = 0;
+    this.diffY = 0;
+    this.lastScreenX = 0;
+    this.lastScreenY = 0;
   }
 
   handleTouchStart(event) {
@@ -162,13 +176,13 @@ export default class extends Events {
         (TOUCHES_ARRAY[0].screenX + TOUCHES_ARRAY[1].screenX) / 2;
       const CURRENT_Y =
         (TOUCHES_ARRAY[0].screenY + TOUCHES_ARRAY[1].screenY) / 2;
-      this.diff.x = CURRENT_X - START_X;
-      this.diff.y = CURRENT_Y - START_Y;
+      this.lastTranslateX = CURRENT_X - START_X;
+      this.lastTranslateY = CURRENT_Y - START_Y;
     } else {
       const CURRENT_X = TOUCHES_ARRAY[0].screenX;
       const CURRENT_Y = TOUCHES_ARRAY[0].screenY;
-      this.diff.x = CURRENT_X - this.pointerPosition.startX;
-      this.diff.y = CURRENT_Y - this.pointerPosition.startY;
+      this.lastTranslateX = CURRENT_X - this.pointerPosition.startX;
+      this.lastTranslateY = CURRENT_Y - this.pointerPosition.startY;
     }
 
     event.preventDefault();
@@ -208,8 +222,8 @@ export default class extends Events {
   }
 
   moveImage() {
-    this.imagePosition.x = this.diff.x + this.imagePosition_past.x;
-    this.imagePosition.y = this.diff.y + this.imagePosition_past.y;
+    this.imagePosition.x += this.diffX;
+    this.imagePosition.y += this.diffY;
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
