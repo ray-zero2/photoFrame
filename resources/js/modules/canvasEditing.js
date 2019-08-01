@@ -168,9 +168,9 @@ export default class extends Events {
         (CURRENT_X2 - CURRENT_X) * (CURRENT_Y2 - CURRENT_Y)
       );
       if (CURRENT_PINCH_SIZE < this.pinchSize) {
-        this.scale /= 1.02;
+        this.scale /= 1.002;
       } else {
-        this.scale *= 1.02;
+        this.scale *= 1.002;
       }
 
       this.diffX = CENTER_X - this.lastScreenX;
