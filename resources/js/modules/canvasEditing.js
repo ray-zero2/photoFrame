@@ -51,7 +51,7 @@ export default class extends Events {
     this.lastScreenY2 = 0;
     this.diffX = 0;
     this.diffY = 0;
-    this.pinchSize = 0;
+    this.lastLength = 0;
 
     this.isTouched = false;
     this.bind();
@@ -113,15 +113,7 @@ export default class extends Events {
 
   handleMouseMove(event) {
     if (!this.isTouched) return;
-    const CURRENT_X = event.screenX;
-    const CURRENT_Y = event.screenY;
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
-    this.moveImage();
-    this.lastScreenX = CURRENT_X;
-    this.lastScreenY = CURRENT_Y;
+    this.singleTouchMove(event);
   }
 
   handleMouseUp() {
@@ -137,13 +129,14 @@ export default class extends Events {
   handleTouchStart(event) {
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length > 1) {
+      console.log('multi touch on');
       const X1 = TOUCHES_ARRAY[0].screenX;
       const X2 = TOUCHES_ARRAY[1].screenX;
       const Y1 = TOUCHES_ARRAY[0].screenY;
       const Y2 = TOUCHES_ARRAY[1].screenY;
       this.lastScreenX = (X2 + X1) / 2;
       this.lastScreenY = (Y2 + Y1) / 2;
-      this.pinchSize = Math.abs((X2 - X1) * (Y2 - Y1));
+      // this.pinchSize = Math.abs((X2 - X1) * (Y2 - Y1));
     } else {
       this.lastScreenX = TOUCHES_ARRAY[0].screenX;
       this.lastScreenY = TOUCHES_ARRAY[0].screenY;
@@ -155,62 +148,64 @@ export default class extends Events {
   handleTouchMove(event) {
     if (!this.isTouched) return;
     const TOUCHES_ARRAY = event.touches;
-    const CURRENT_X = TOUCHES_ARRAY[0].screenX;
-    const CURRENT_Y = TOUCHES_ARRAY[0].screenY;
-
-    if (TOUCHES_ARRAY.length > 1) {
-      //ふたつめの指の位置とる
-      const CURRENT_X2 = TOUCHES_ARRAY[1].screenX;
-      const CURRENT_Y2 = TOUCHES_ARRAY[1].screenY;
-      const CENTER_X = (CURRENT_X + CURRENT_X2) / 2;
-      const CENTER_Y = (CURRENT_Y + CURRENT_Y2) / 2;
-      const CURRENT_PINCH_SIZE = Math.abs(
-        (CURRENT_X2 - CURRENT_X) * (CURRENT_Y2 - CURRENT_Y)
-      );
-      if (CURRENT_PINCH_SIZE < this.pinchSize) {
-        this.scale /= 1.002;
-      } else {
-        this.scale *= 1.002;
-      }
-
-      this.diffX = CENTER_X - this.lastScreenX;
-      this.diffY = CENTER_Y - this.lastScreenY;
-      this.lastTranslateX += this.diffX;
-      this.lastTranslateY += this.diffY;
-      event.preventDefault();
-      this.moveImage();
-      this.lastScreenX = CENTER_X;
-      this.lastScreenX = CENTER_X;
-      this.pinchSize = CURRENT_PINCH_SIZE;
+    if (TOUCHES_ARRAY.length === 1) {
+      this.singleTouchMove(event);
     } else {
-      this.diffX = CURRENT_X - this.lastScreenX;
-      this.diffY = CURRENT_Y - this.lastScreenY;
-      this.lastTranslateX += this.diffX;
-      this.lastTranslateY += this.diffY;
-      event.preventDefault();
-      this.moveImage();
-      this.lastScreenX = CURRENT_X;
-      this.lastScreenY = CURRENT_Y;
+      // this.doubleTouchMove(event);
     }
-
-    // if (TOUCHES_ARRAY.length > 1) {
-    //   // this.position.currentSecondX = TOUCHES_ARRAY[1].screenX;
-    //   // this.position.currentSecondY = TOUCHES_ARRAY[1].screenY;
-    //   const START_X = (this.position.startX + this.position.startSecondX) / 2;
-    //   const START_Y = (this.position.startY + this.position.startSecondY) / 2;
-    //   const CURRENT_X =
-    //     (TOUCHES_ARRAY[0].screenX + TOUCHES_ARRAY[1].screenX) / 2;
-    //   const CURRENT_Y =
-    //     (TOUCHES_ARRAY[0].screenY + TOUCHES_ARRAY[1].screenY) / 2;
-    //   this.lastTranslateX = CURRENT_X - START_X;
-    //   this.lastTranslateY = CURRENT_Y - START_Y;
-    // } else {
-    //   const CURRENT_X = TOUCHES_ARRAY[0].screenX;
-    //   const CURRENT_Y = TOUCHES_ARRAY[0].screenY;
-    //   this.lastTranslateX = CURRENT_X - this.position.startX;
-    //   this.lastTranslateY = CURRENT_Y - this.position.startY;
-    // }
   }
+  singleTouchMove(event) {
+    const CURRENT_X =
+      event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
+    const CURRENT_Y =
+      event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
+    this.diffX = CURRENT_X - this.lastScreenX;
+    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.lastTranslateX += this.diffX;
+    this.lastTranslateY += this.diffY;
+    this.moveImage();
+    this.lastScreenX = CURRENT_X;
+    this.lastScreenY = CURRENT_Y;
+  }
+  doubleTouchMove(event) {
+    //指の中心とる
+    this.getCenterBetweenFingers();
+    //指の間の距離とる
+    const CURRENT_LENGTH = this.calcLengthBetweenFingers(event);
+    const DIFF_LENGTH = CURRENT_LENGTH - this.lastLength;
+    //拡大縮小処理
+    this.calcScale();
+    //画像移動
+    this.moveImage();
+    this.lastLength = CURRENT_LENGTH;
+  }
+
+  calcLengthBetweenFingers(event) {
+    const EVENT_TOUCHES = event.touches;
+    const X1 = EVENT_TOUCHES[0].screenX;
+    const X2 = EVENT_TOUCHES[1].screenX;
+    const Y1 = EVENT_TOUCHES[0].screenY;
+    const Y2 = EVENT_TOUCHES[1].screenY;
+
+    return Math.sqrt(Math.pow(X2 - X1, 2) * Math.pow(Y2 - Y1, 2));
+  }
+  // if (TOUCHES_ARRAY.length > 1) {
+  //   // this.position.currentSecondX = TOUCHES_ARRAY[1].screenX;
+  //   // this.position.currentSecondY = TOUCHES_ARRAY[1].screenY;
+  //   const START_X = (this.position.startX + this.position.startSecondX) / 2;
+  //   const START_Y = (this.position.startY + this.position.startSecondY) / 2;
+  //   const CURRENT_X =
+  //     (TOUCHES_ARRAY[0].screenX + TOUCHES_ARRAY[1].screenX) / 2;
+  //   const CURRENT_Y =
+  //     (TOUCHES_ARRAY[0].screenY + TOUCHES_ARRAY[1].screenY) / 2;
+  //   this.lastTranslateX = CURRENT_X - START_X;
+  //   this.lastTranslateY = CURRENT_Y - START_Y;
+  // } else {
+  //   const CURRENT_X = TOUCHES_ARRAY[0].screenX;
+  //   const CURRENT_Y = TOUCHES_ARRAY[0].screenY;
+  //   this.lastTranslateX = CURRENT_X - this.position.startX;
+  //   this.lastTranslateY = CURRENT_Y - this.position.startY;
+  // }
 
   handleTouchEnd(event) {
     if (event.touches.length === 0) {
