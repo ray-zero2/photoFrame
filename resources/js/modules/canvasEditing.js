@@ -214,8 +214,9 @@ export default class extends Events {
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
 
-    this.resize();
     this.moveImage();
+    this.resize();
+
     this.lastLength = CURRENT_LENGTH;
     this.lastScreenX = CURRENT_X;
     this.lastScreenY = CURRENT_Y;
