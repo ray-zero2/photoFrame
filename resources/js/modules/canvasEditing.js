@@ -134,7 +134,7 @@ export default class extends Events {
       this.singleTouchStart(event);
     } else {
       this.handleMouseUp();
-      this.isDoubleTouched = true;
+      // this.isDoubleTouched = true;
       this.doubleTouchStart(event);
     }
     this.isTouched = true;
@@ -193,7 +193,6 @@ export default class extends Events {
     this.lastScreenY = CURRENT_Y;
   }
   doubleTouchMove(event) {
-    if (this.isDoubleTouched === false) return;
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
     const X2 = TOUCHES_ARRAY[1].screenX;
@@ -201,7 +200,11 @@ export default class extends Events {
     const Y2 = TOUCHES_ARRAY[1].screenY;
     const CURRENT_X = (X2 + X1) / 2;
     const CURRENT_Y = (Y2 + Y1) / 2;
-
+    if (this.isDoubleTouched === false) {
+      this.isDoubleTouched = true;
+      this.lastScreenX = CURRENT_X;
+      this.lastScreenY = CURRENT_Y;
+    }
     //指の間の距離とる
     const CURRENT_LENGTH = this.calcLengthBetweenFingers(event);
     this.scale *= CURRENT_LENGTH / this.lastLength;
