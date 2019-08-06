@@ -202,6 +202,7 @@ export default class extends Events {
     const CURRENT_Y = (Y2 + Y1) / 2;
     if (this.isDoubleTouched === false) {
       this.isDoubleTouched = true;
+      this.lastLength = this.calcLengthBetweenFingers(event);
       this.lastScreenX = CURRENT_X;
       this.lastScreenY = CURRENT_Y;
     }
