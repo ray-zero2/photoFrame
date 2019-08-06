@@ -216,7 +216,7 @@ export default class extends Events {
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
 
-    // this.moveImage();
+    this.moveImage();
     this.resize();
 
     this.lastLength = CURRENT_LENGTH;
