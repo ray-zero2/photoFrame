@@ -225,7 +225,9 @@ export default class extends Events {
     const Y1 = EVENT_TOUCHES[0].screenY;
     const Y2 = EVENT_TOUCHES[1].screenY;
 
-    return Math.hypot(X2 - X1, Y2 - Y1);
+    const Value = Math.hypot(X2 - X1, Y2 - Y1);
+    console.log(`length = ${Value}`);
+    return Value;
   }
 
   // handleTouchEnd(event) {
