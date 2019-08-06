@@ -30,10 +30,8 @@ export default class extends Events {
     this.imageWidth = 300;
     this.imageHeight = 300;
 
-    this.scale = 1;
-    this.lastScale = 1;
-    this.imagePosition = { x: 0, y: 0 };
-
+    this.positionX = 0;
+    this.positionY = 0;
     this.lastTranslateX = 0;
     this.lastTranslateY = 0;
     this.lastScreenX = 0;
@@ -41,6 +39,7 @@ export default class extends Events {
     this.diffX = 0;
     this.diffY = 0;
     this.lastLength = 0;
+    this.lastScale = 1;
 
     this.isTouched = false;
     this.isDoubleTouched = false;
@@ -68,16 +67,16 @@ export default class extends Events {
     document.addEventListener('touchend', this.handlers.touchend);
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', event => {
-      this.lastScale = this.scale;
-      this.scale *= 1.1;
       event.preventDefault();
-      this.resize();
+      // this.lastScale = this.scale;
+      const SCALE = 1.1;
+      this.resize(SCALE);
     });
     this.$scaleDownButton.addEventListener('click', event => {
-      this.lastScale = this.scale;
-      this.scale /= 1.1;
       event.preventDefault();
-      this.resize();
+      const SCALE = 1 / 1.1;
+
+      this.resize(SCALE);
     });
     this.$scaleOkButton.addEventListener('click', () => {
       this.$scaleUpButton.classList.add('js-hide');
@@ -143,16 +142,8 @@ export default class extends Events {
     }
   }
 
-  handleTouchEnd(event) {
+  handleTouchEnd() {
     this.resetValues();
-    // if (event.touches.length === 0) {
-    //   this.isTouched = false;
-    // } else if (event.touches.length === 1) {
-    //   this.isDoubleTouched = false;
-    //   const TOUCHES_ARRAY = event.touches;
-    //   this.lastScreenX = TOUCHES_ARRAY[0].screenX;
-    //   this.lastScreenY = TOUCHES_ARRAY[0].screenY;
-    // }
   }
 
   singleTouchStart(event) {
@@ -162,12 +153,11 @@ export default class extends Events {
   }
   doubleTouchStart(event) {
     const TOUCHES_ARRAY = event.touches;
-    console.log('multi touch on');
-    this.lastLength = this.calcLengthBetweenFingers(event);
     const X1 = TOUCHES_ARRAY[0].screenX;
     const X2 = TOUCHES_ARRAY[1].screenX;
     const Y1 = TOUCHES_ARRAY[0].screenY;
     const Y2 = TOUCHES_ARRAY[1].screenY;
+    this.lastLength = this.calcLengthBetweenFingers(event);
     this.lastScreenX = (X2 + X1) / 2;
     this.lastScreenY = (Y2 + Y1) / 2;
     this.isDoubleTouched = true;
@@ -194,25 +184,16 @@ export default class extends Events {
     const Y2 = TOUCHES_ARRAY[1].screenY;
     const CURRENT_X = (X2 + X1) / 2;
     const CURRENT_Y = (Y2 + Y1) / 2;
-    // if (this.isDoubleTouched === false) {
-    //   this.isDoubleTouched = true;
-    //   this.lastLength = this.calcLengthBetweenFingers(event);
-    //   this.lastScreenX = CURRENT_X;
-    //   this.lastScreenY = CURRENT_Y;
-    // }
-    //指の間の距離とる
     const CURRENT_LENGTH = this.calcLengthBetweenFingers(event);
-    this.lastScale = this.scale;
-    this.scale *= CURRENT_LENGTH / this.lastLength;
+    // this.lastScale = this.scale;
+    const SCALE = CURRENT_LENGTH / this.lastLength;
 
     this.diffX = CURRENT_X - this.lastScreenX;
     this.diffY = CURRENT_Y - this.lastScreenY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
-
+    this.resize(SCALE);
     this.moveImage();
-    this.resize();
-
     this.lastLength = CURRENT_LENGTH;
     this.lastScreenX = CURRENT_X;
     this.lastScreenY = CURRENT_Y;
@@ -228,24 +209,23 @@ export default class extends Events {
     return Math.hypot(X2 - X1, Y2 - Y1);
   }
 
-  resize() {
+  resize(scale) {
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
+    const CURRENT_SCALE = this.lastScale * scale;
     const GEOMETRIC_CENTER_X =
-      this.imagePosition.x + (this.imageWidth * this.lastScale) / 2;
+      this.positionX + (this.imageWidth * this.lastScale) / 2;
     const GEOMETRIC_CENTER_Y =
-      this.imagePosition.y + (this.imageHeight * this.lastScale) / 2;
+      this.positionY + (this.imageHeight * this.lastScale) / 2;
 
     const CENTER_DIFF_X = GEOMETRIC_CENTER_X - 150; //150: キャンバスサイズの半分
     const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - 150;
 
-    const RENDER_WIDTH = this.imageWidth * this.scale;
-    const RENDER_HEIGHT = this.imageHeight * this.scale;
-    const RENDER_POINT_X =
-      (this.scale / this.lastScale) * CENTER_DIFF_X - RENDER_WIDTH / 2 + 150;
-    const RENDER_POINT_Y =
-      (this.scale / this.lastScale) * CENTER_DIFF_Y - RENDER_HEIGHT / 2 + 150;
+    const RENDER_WIDTH = this.imageWidth * CURRENT_SCALE;
+    const RENDER_HEIGHT = this.imageHeight * CURRENT_SCALE;
+    const RENDER_POINT_X = scale * CENTER_DIFF_X - RENDER_WIDTH / 2 + 150;
+    const RENDER_POINT_Y = scale * CENTER_DIFF_Y - RENDER_HEIGHT / 2 + 150;
 
     this.context.drawImage(
       this.$offScreen,
@@ -254,20 +234,21 @@ export default class extends Events {
       RENDER_WIDTH,
       RENDER_HEIGHT
     );
-    this.imagePosition.x = RENDER_POINT_X;
-    this.imagePosition.y = RENDER_POINT_Y;
+    this.positionX = RENDER_POINT_X;
+    this.positionY = RENDER_POINT_Y;
+    this.lastScale = CURRENT_SCALE;
   }
 
   moveImage() {
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
-    this.imagePosition.x += this.diffX;
-    this.imagePosition.y += this.diffY;
+    this.positionX += this.diffX;
+    this.positionY += this.diffY;
 
-    const RENDER_POINT_X = this.imagePosition.x;
-    const RENDER_POINT_Y = this.imagePosition.y;
-    const RENDER_WIDTH = this.imageWidth * this.scale;
-    const RENDER_HEIGHT = this.imageHeight * this.scale;
+    const RENDER_POINT_X = this.positionX;
+    const RENDER_POINT_Y = this.positionY;
+    const RENDER_WIDTH = this.imageWidth * this.lastScale;
+    const RENDER_HEIGHT = this.imageHeight * this.lastScale;
     this.context.drawImage(
       this.$offScreen,
       RENDER_POINT_X,
