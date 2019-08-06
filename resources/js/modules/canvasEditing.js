@@ -208,6 +208,7 @@ export default class extends Events {
     }
     //指の間の距離とる
     const CURRENT_LENGTH = this.calcLengthBetweenFingers(event);
+    this.scale_past = this.scale;
     this.scale *= CURRENT_LENGTH / this.lastLength;
 
     this.diffX = CURRENT_X - this.lastScreenX;
