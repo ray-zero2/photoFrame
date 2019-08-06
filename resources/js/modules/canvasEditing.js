@@ -133,6 +133,7 @@ export default class extends Events {
     if (TOUCHES_ARRAY.length === 1) {
       this.singleTouchStart(event);
     } else {
+      this.handleMouseUp();
       this.isDoubleTouched = true;
       this.doubleTouchStart(event);
     }
@@ -150,9 +151,9 @@ export default class extends Events {
   }
 
   handleTouchEnd(event) {
+    this.handleMouseUp();
     if (event.touches.length === 0) {
       this.isTouched = false;
-      this.handleMouseUp();
     } else if (event.touches.length === 1) {
       this.isDoubleTouched = false;
       const TOUCHES_ARRAY = event.touches;
