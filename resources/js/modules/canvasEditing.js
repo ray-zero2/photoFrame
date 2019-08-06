@@ -12,6 +12,7 @@ export default class extends Events {
     this.$offScreen.width = this.$canvas.width;
     this.$offScreen.height = this.$canvas.height;
     this.offScreenContext = this.$offScreen.getContext('2d');
+
     //その他の要素取得
     this.$scaleUpButton = document.querySelector('.js-scaleUp');
     this.$scaleDownButton = document.querySelector('.js-scaleDown');
@@ -25,30 +26,18 @@ export default class extends Events {
 
     //変数等
     this.originalImage = backgroundImage;
+
     this.imageWidth = 300;
     this.imageHeight = 300;
-    this.scale = 1;
-    this.scale_past = 1;
 
+    this.scale = 1;
+    this.lastScale = 1;
     this.imagePosition = { x: 0, y: 0 };
-    this.imagePosition_past = { x: 0, y: 0 };
-    this.imageGeometricCenter = { x: 0, y: 0 };
-    this.position = {
-      startX: 0,
-      startY: 0,
-      startSecondX: 0,
-      startSecondY: 0,
-      currentX: 0,
-      currentY: 0,
-      currentSecondX: 0,
-      currentSecondY: 0
-    };
+
     this.lastTranslateX = 0;
     this.lastTranslateY = 0;
     this.lastScreenX = 0;
     this.lastScreenY = 0;
-    this.lastScreenX2 = 0;
-    this.lastScreenY2 = 0;
     this.diffX = 0;
     this.diffY = 0;
     this.lastLength = 0;
@@ -79,13 +68,13 @@ export default class extends Events {
     document.addEventListener('touchend', this.handlers.touchend);
     //拡大縮小ボタン
     this.$scaleUpButton.addEventListener('click', event => {
-      this.scale_past = this.scale;
+      this.lastScale = this.scale;
       this.scale *= 1.1;
       event.preventDefault();
       this.resize();
     });
     this.$scaleDownButton.addEventListener('click', event => {
-      this.scale_past = this.scale;
+      this.lastScale = this.scale;
       this.scale /= 1.1;
       event.preventDefault();
       this.resize();
@@ -208,7 +197,7 @@ export default class extends Events {
     }
     //指の間の距離とる
     const CURRENT_LENGTH = this.calcLengthBetweenFingers(event);
-    this.scale_past = this.scale;
+    this.lastScale = this.scale;
     this.scale *= CURRENT_LENGTH / this.lastLength;
 
     this.diffX = CURRENT_X - this.lastScreenX;
@@ -231,49 +220,27 @@ export default class extends Events {
     const Y1 = EVENT_TOUCHES[0].screenY;
     const Y2 = EVENT_TOUCHES[1].screenY;
 
-    const Value = Math.hypot(X2 - X1, Y2 - Y1);
-    console.log(`length = ${Value}`);
-    return Value;
+    return Math.hypot(X2 - X1, Y2 - Y1);
   }
-
-  // handleTouchEnd(event) {
-  //   if (event.touches.length === 0) {
-  //     this.isTouched = false;
-  //     this.lastTranslateX = 0;
-  //     this.lastTranslateY = 0;
-  //     this.diffX = 0;
-  //     this.diffY = 0;
-  //     this.lastScreenX = 0;
-  //     this.lastScreenY = 0;
-  //     this.lastScreenX2 = 0;
-  //     this.lastScreenY2 = 0;
-  //   } else {
-  //     const TOUCHES_ARRAY = event.touches;
-  //     this.lastScreenX = TOUCHES_ARRAY[0].screenX;
-  //     this.lastScreenY = TOUCHES_ARRAY[0].screenY;
-  //   }
-  // }
 
   resize() {
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
 
+    const GEOMETRIC_CENTER_X =
+      this.imagePosition.x + (this.imageWidth * this.lastScale) / 2;
+    const GEOMETRIC_CENTER_Y =
+      this.imagePosition.y + (this.imageHeight * this.lastScale) / 2;
+
+    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - 150; //150: キャンバスサイズの半分
+    const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - 150;
+
     const RENDER_WIDTH = this.imageWidth * this.scale;
     const RENDER_HEIGHT = this.imageHeight * this.scale;
-
-    this.imageGeometricCenter.x =
-      this.imagePosition.x + (this.imageWidth * this.scale_past) / 2;
-    this.imageGeometricCenter.y =
-      this.imagePosition.y + (this.imageHeight * this.scale_past) / 2;
-
-    const CENTER_DIFF_X = this.imageGeometricCenter.x - 150; //150: キャンバスサイズの半分
-    const CENTER_DIFF_Y = this.imageGeometricCenter.y - 150;
-
     const RENDER_POINT_X =
-      (this.scale / this.scale_past) * CENTER_DIFF_X - RENDER_WIDTH / 2 + 150;
-
+      (this.scale / this.lastScale) * CENTER_DIFF_X - RENDER_WIDTH / 2 + 150;
     const RENDER_POINT_Y =
-      (this.scale / this.scale_past) * CENTER_DIFF_Y - RENDER_HEIGHT / 2 + 150;
+      (this.scale / this.lastScale) * CENTER_DIFF_Y - RENDER_HEIGHT / 2 + 150;
 
     this.context.drawImage(
       this.$offScreen,
@@ -303,5 +270,11 @@ export default class extends Events {
       RENDER_WIDTH,
       RENDER_HEIGHT
     );
+  }
+  adjustSize() {
+    const WIDTH = this.imageWidth * this.scale;
+    const HEIGHT = this.imageHeight * this.scale;
+    const POSITION_X = this.imagePosition.x;
+    const POSITION_Y = this.imagePosition.y;
   }
 }
