@@ -7,13 +7,14 @@ class Sticker {
     this.positionY = 100;
     this.width = 100;
     this.height = 100;
+    this.scale = 1;
   }
 }
 export default class extends Events {
   constructor(backgroundImage) {
     super();
 
-    //キャンバス
+    // //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
 
@@ -130,12 +131,34 @@ export default class extends Events {
 
   handleMouseMove(event) {
     if (this.isStickerTouched === false) return;
+    this.singleTouchMove(event);
+  }
+
+  handleMouseUp() {
+    this.resetValues();
+  }
+
+  resetValues() {
+    this.isTouched = false;
+    this.isDoubleTouched = false;
+    this.isStickerTouched = false;
+    this.lastTranslateX = 0;
+    this.lastTranslateY = 0;
+    this.diffX = 0;
+    this.diffY = 0;
+    this.lastScreenX = 0;
+    this.lastScreenY = 0;
+    this.clickProperty = 0;
+  }
+
+  singleTouchMove(event) {
     const CURRENT_X = event.screenX;
     const CURRENT_Y = event.screenY;
     this.diffX = CURRENT_X - this.lastScreenX;
     this.diffY = CURRENT_Y - this.lastScreenY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
+    console.log(this.diffX);
 
     this.operateSticker();
     this.renderStickers();
@@ -144,12 +167,6 @@ export default class extends Events {
     this.lastScreenY = CURRENT_Y;
   }
 
-  handleMouseUp() {
-    this.isStickerTouched = false;
-    this.lastTranslateX = 0;
-    this.lastTranslateY = 0;
-    this.clickProperty = 0;
-  }
   /**
    * スタンプをクリックしているかを調べ、アクティブなスタンプをクリックしていればそのクリック箇所も調べる
    * @param {object} event クリックイベント
@@ -264,6 +281,9 @@ export default class extends Events {
     }
   }
 
+  /**
+   * スタンプが格納されている配列を操作する。クリックされたスタンプを配列の最後に移動
+   */
   decideOperatedSticker() {
     //現在アクティブ状態のスタンプが何番目の配列に入っているか取得
     const INDEX_OPERATED_STICKER = this.stickersOnCanvas.findIndex(
@@ -326,28 +346,50 @@ export default class extends Events {
         break;
     }
   }
+
+  // adjustSize(width, hight) {
+  //   const LAST_INDEX = this.stickersOnCanvas.length - 1;
+  // }
+
+  // resize(diffX, diffY) {
+  //   const LAST_INDEX = this.stickersOnCanvas.length - 1;
+  //   const STICKER = this.stickersOnCanvas[LAST_INDEX];
+  //   const WIDTH = STICKER.width + Math.abs(diffX);
+  //   const HEIGHT = STICKER.height + Math.abs(diffY);
+  //   this.adjustSize(WIDTH, HEIGHT);
+  // }
+
+  // resizeHandleRightBottom() {
+  //   const DIFF_X = this.diffX;
+  //   const DIFF_Y = this.diffY;
+
+  //   this.resize(DIFF_X, DIFF_Y);
+  // }
+
   resizeHandleLeftTop() {
     const ASPECT = 1;
     if (-this.diffY <= -this.diffX) {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width += -this
-        .diff.x;
+        .diffX;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionX =
-        this.stickerPosition_past.x + this.diffX;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY =
-        this.stickerPosition_past.y + this.diffX;
+      this.stickersOnCanvas[
+        this.stickersOnCanvas.length - 1
+      ].positionX += this.diffX;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY +=
+        this.diffX * ASPECT;
     } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + -this.diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height += -this
+        .diffY;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY =
-        this.stickerPosition_past.y + this.diffY;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionX =
-        this.stickerPosition_past.x + this.diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY +=
+        this.diffY * ASPECT;
+      this.stickersOnCanvas[
+        this.stickersOnCanvas.length - 1
+      ].positionX += this.diffY;
     }
   }
   resizeHandleLeftBottom() {

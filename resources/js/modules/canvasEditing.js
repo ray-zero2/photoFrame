@@ -30,8 +30,6 @@ export default class extends Events {
     this.imageWidth = 300;
     this.imageHeight = 300;
 
-    this.positionX = 0;
-    this.positionY = 0;
     this.lastTranslateX = 0;
     this.lastTranslateY = 0;
     this.lastScreenX = 0;
@@ -41,8 +39,8 @@ export default class extends Events {
     this.lastLength = 0;
     this.lastScale = 1;
 
-    this.renderX = 0;
-    this.renderY = 0;
+    this.positionX = 0;
+    this.positionY = 0;
     this.renderWidth = 0;
     this.renderHeight = 0;
 
@@ -62,9 +60,7 @@ export default class extends Events {
     };
 
     this.$canvas.addEventListener('mousedown', this.handlers.mousedown);
-
     this.$canvas.addEventListener('mousemove', this.handlers.mousemove);
-
     document.addEventListener('mouseup', this.handlers.mouseup);
 
     this.$canvas.addEventListener('touchstart', this.handlers.touchstart);
@@ -158,6 +154,7 @@ export default class extends Events {
     this.lastScreenX = TOUCHES_ARRAY[0].screenX;
     this.lastScreenY = TOUCHES_ARRAY[0].screenY;
   }
+
   doubleTouchStart(event) {
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
@@ -184,6 +181,7 @@ export default class extends Events {
     this.lastScreenX = CURRENT_X;
     this.lastScreenY = CURRENT_Y;
   }
+
   doubleTouchMove(event) {
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
@@ -219,11 +217,8 @@ export default class extends Events {
 
     this.renderWidth = this.imageWidth * CURRENT_SCALE;
     this.renderHeight = this.imageHeight * CURRENT_SCALE;
-    this.renderX = SCALE * CENTER_DIFF_X - this.renderWidth / 2 + 150;
-    this.renderY = SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + 150;
-
-    this.positionX = this.renderX;
-    this.positionY = this.renderY;
+    this.positionX = SCALE * CENTER_DIFF_X - this.renderWidth / 2 + 150;
+    this.positionY = SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + 150;
     this.lastScale = CURRENT_SCALE;
   }
 
@@ -233,22 +228,22 @@ export default class extends Events {
 
     this.renderWidth = this.imageWidth * this.lastScale;
     this.renderHeight = this.imageHeight * this.lastScale;
-    this.renderX = this.positionX;
-    this.renderY = this.positionY;
   }
+
   adjustSize() {
     // const WIDTH = Math.max(this.renderWidth, 300);
     // const HEIGHT = Math.max(this.renderHeight, 300);
     // const X = Math.abs();
   }
+
   render() {
     this.adjustSize();
     this.context.clearRect(0, 0, 300, 300);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
     this.context.drawImage(
       this.$offScreen,
-      this.renderX,
-      this.renderY,
+      this.positionX,
+      this.positionY,
       this.renderWidth,
       this.renderHeight
     );
