@@ -35,12 +35,12 @@ export default class extends Events {
     this.$removeStickerButton = document.querySelector('.js-removeSticker');
     this.$createImageButton = document.querySelector('.js-createImageButton');
 
-    this.pointerPosition = {
-      startX: 0,
-      startY: 0,
-      currentX: 0,
-      currentY: 0
-    };
+    // this.pointerPosition = {
+    //   startX: 0,
+    //   startY: 0,
+    //   currentX: 0,
+    //   currentY: 0
+    // };
     this.diff = { x: 0, y: 0 };
     this.diffX = 0;
     this.diffY = 0;
@@ -140,10 +140,10 @@ export default class extends Events {
 
   handleMouseUp() {
     this.isStickerTouched = false;
-    this.pointerPosition.startX = 0;
-    this.pointerPosition.startY = 0;
-    this.pointerPosition.currentX = 0;
-    this.pointerPosition.currentY = 0;
+    // this.pointerPosition.startX = 0;
+    // this.pointerPosition.startY = 0;
+    // this.pointerPosition.currentX = 0;
+    // this.pointerPosition.currentY = 0;
     this.clickProperty = 0;
   }
 
@@ -195,8 +195,8 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
     const CURRENT_Y =
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
-    this.pointerPosition.currentX = CURRENT_X;
-    this.pointerPosition.currentY = CURRENT_Y;
+    // this.pointerPosition.currentX = CURRENT_X;
+    // this.pointerPosition.currentY = CURRENT_Y;
     this.diffX = CURRENT_X - this.lastScreenX;
     this.diffY = CURRENT_Y - this.lastScreenY;
     this.lastTranslateX += this.diffX;
@@ -490,8 +490,8 @@ export default class extends Events {
 
   resizeHandleRightBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const WIDTH = offsetX - STICKER.leftTopPoint.x;
-    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
+    const WIDTH = (offsetX - STICKER.leftTopPoint.x) * STICKER.scale;
+    const HEIGHT = (offsetY - STICKER.leftTopPoint.y) * STICKER.scale;
     this.adjustSizing(WIDTH, HEIGHT);
   }
 
