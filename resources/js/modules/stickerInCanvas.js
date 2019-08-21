@@ -224,8 +224,10 @@ export default class extends Events {
     //active Stickerのscaleを見たい（実装途中）
     // console.log(SCALE);
 
+    this.diff.x = CURRENT_X - this.pointerPosition.startX;
+    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
     this.pinchSticker(SCALE);
-    // this.moveSticker();
+    this.moveSticker();
     this.renderStickers();
     this.lastLength = CURRENT_LENGTH;
     // this.lastScreenX = CURRENT_X;
