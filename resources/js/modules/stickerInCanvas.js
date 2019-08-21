@@ -490,8 +490,8 @@ export default class extends Events {
 
   resizeHandleRightBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const WIDTH = (offsetX - STICKER.leftTopPoint.x) * STICKER.scale;
-    const HEIGHT = (offsetY - STICKER.leftTopPoint.y) * STICKER.scale;
+    const WIDTH = offsetX - STICKER.leftTopPoint.x * STICKER.scale;
+    const HEIGHT = offsetY - STICKER.leftTopPoint.y * STICKER.scale;
     this.adjustSizing(WIDTH, HEIGHT);
   }
 
