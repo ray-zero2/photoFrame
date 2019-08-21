@@ -2,19 +2,18 @@ import Events from 'events';
 class Sticker {
   constructor(stickerNum, idNumber) {
     this.id = idNumber;
-    this.src = `./images/sticker/sticker${stickerNum}.png`;
-    this.positionX = 100;
-    this.positionY = 100;
+    this.src = `/public/images/sticker/sticker${stickerNum}.png`;
+    this.leftTopPoint = { x: 100, y: 100 };
+    this.scale = 1;
     this.width = 100;
     this.height = 100;
-    this.scale = 1;
   }
 }
 export default class extends Events {
   constructor(backgroundImage) {
     super();
 
-    // //キャンバス
+    //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
 
@@ -36,13 +35,13 @@ export default class extends Events {
     this.$removeStickerButton = document.querySelector('.js-removeSticker');
     this.$createImageButton = document.querySelector('.js-createImageButton');
 
-    this.isDoubleTouched = false;
-    this.lastTranslateX = 0;
-    this.lastTranslateY = 0;
-    this.diffX = 0;
-    this.diffY = 0;
-    this.lastScreenX = 0;
-    this.lastScreenY = 0;
+    this.pointerPosition = {
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      currentY: 0
+    };
+    this.diff = { x: 0, y: 0 };
     this.isStickerTouched = false;
     this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
@@ -84,17 +83,17 @@ export default class extends Events {
       this.handleMouseUp(event);
     });
 
-    // this.$canvas.addEventListener('touchstart', event => {
-    //   this.handleTouchStart(event);
-    // });
+    this.$canvas.addEventListener('touchstart', event => {
+      this.handleTouchStart(event);
+    });
 
-    // this.$canvas.addEventListener('touchmove', event => {
-    //   this.handleTouchMove(event);
-    // });
+    this.$canvas.addEventListener('touchmove', event => {
+      this.handleTouchMove(event);
+    });
 
-    // document.addEventListener('touchend', event => {
-    //   this.handleTouchEnd(event);
-    // });
+    document.addEventListener('touchend', event => {
+      this.handleTouchEnd(event);
+    });
     //sticker一覧
     [...this.$stickers].forEach(element => {
       element.addEventListener('click', event => {
@@ -118,10 +117,66 @@ export default class extends Events {
   }
 
   handleMouseDown(event) {
-    const START_X = event.screenX;
-    const START_Y = event.screenY;
-    this.lastScreenX = START_X;
-    this.lastScreenY = START_Y;
+    // const START_X = event.screenX;
+    // const START_Y = event.screenY;
+    // this.pointerPosition.startX = START_X;
+    // this.pointerPosition.startY = START_Y;
+    // this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
+    // if (this.isStickerTouched) {
+    //   this.decideOperatedSticker(event);
+    //   this.renderStickers();
+    // }
+    this.singleTouchStart(event);
+  }
+
+  handleMouseMove(event) {
+    this.singleTouchMove(event);
+  }
+
+  handleMouseUp() {
+    this.isStickerTouched = false;
+    this.pointerPosition.startX = 0;
+    this.pointerPosition.startY = 0;
+    this.pointerPosition.currentX = 0;
+    this.pointerPosition.currentY = 0;
+    this.clickProperty = 0;
+  }
+
+  handleTouchStart(event) {
+    const TOUCHES_ARRAY = event.touches;
+    event.preventDefault();
+    if (TOUCHES_ARRAY.length === 1) {
+      this.singleTouchStart(event);
+    } else {
+      this.doubleTouchStart(event);
+      this.isDoubleTouched = true;
+    }
+    this.isTouched = true;
+  }
+
+  handleTouchMove(event) {
+    if (!this.isTouched) return;
+    const TOUCHES_ARRAY = event.touches;
+    if (TOUCHES_ARRAY.length === 1) {
+      this.singleTouchMove(event);
+    } else if (TOUCHES_ARRAY.length >= 2 && this.isDoubleTouched) {
+      this.doubleTouchMove(event);
+    }
+  }
+
+  handleTouchEnd() {
+    this.handleMouseUp();
+    this.isTouched = false;
+    this.isDoubleTouched = false;
+  }
+
+  singleTouchStart(event) {
+    const START_X =
+      event.type === 'touchstart' ? event.touches[0].screenX : event.screenX;
+    const START_Y =
+      event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
+    this.pointerPosition.startX = START_X;
+    this.pointerPosition.startY = START_Y;
     this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
     if (this.isStickerTouched) {
       this.decideOperatedSticker(event);
@@ -129,58 +184,84 @@ export default class extends Events {
     }
   }
 
-  handleMouseMove(event) {
-    if (this.isStickerTouched === false) return;
-    this.singleTouchMove(event);
-  }
-
-  handleMouseUp() {
-    this.resetValues();
-  }
-
-  resetValues() {
-    this.isTouched = false;
-    this.isDoubleTouched = false;
-    this.isStickerTouched = false;
-    this.lastTranslateX = 0;
-    this.lastTranslateY = 0;
-    this.diffX = 0;
-    this.diffY = 0;
-    this.lastScreenX = 0;
-    this.lastScreenY = 0;
-    this.clickProperty = 0;
-  }
-
   singleTouchMove(event) {
-    const CURRENT_X = event.screenX;
-    const CURRENT_Y = event.screenY;
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
-    console.log(this.diffX);
+    if (this.isStickerTouched === false) return;
+    const CURRENT_X =
+      event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
+    const CURRENT_Y =
+      event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
+    this.pointerPosition.currentX = CURRENT_X;
+    this.pointerPosition.currentY = CURRENT_Y;
+    this.diff.x = CURRENT_X - this.pointerPosition.startX;
+    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
     this.operateSticker();
     this.renderStickers();
-
-    this.lastScreenX = CURRENT_X;
-    this.lastScreenY = CURRENT_Y;
   }
 
+  doubleTouchStart(event) {
+    const TOUCHES_ARRAY = event.touches;
+    const X1 = TOUCHES_ARRAY[0].screenX;
+    const X2 = TOUCHES_ARRAY[1].screenX;
+    const Y1 = TOUCHES_ARRAY[0].screenY;
+    const Y2 = TOUCHES_ARRAY[1].screenY;
+    this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
+    this.pointerPosition.startX = (X2 + X1) / 2;
+    this.pointerPosition.startY = (Y2 + Y1) / 2;
+    this.isDoubleTouched = true;
+  }
+
+  doubleTouchMove(event) {
+    const TOUCHES_ARRAY = event.touches;
+    const X1 = TOUCHES_ARRAY[0].screenX;
+    const X2 = TOUCHES_ARRAY[1].screenX;
+    const Y1 = TOUCHES_ARRAY[0].screenY;
+    const Y2 = TOUCHES_ARRAY[1].screenY;
+    const CURRENT_X = (X2 + X1) / 2;
+    const CURRENT_Y = (Y2 + Y1) / 2;
+    const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
+
+    //active Stickerのscaleを見たい（実装途中）
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale =
+      CURRENT_LENGTH / this.lastLength;
+
+    // this.diffX = CURRENT_X - this.lastScreenX;
+    // this.diffY = CURRENT_Y - this.lastScreenY;
+    // this.lastTranslateX += this.diffX;
+    // this.lastTranslateY += this.diffY;
+    // this.moveImage();
+    this.renderStickers();
+    this.lastLength = CURRENT_LENGTH;
+    // this.lastScreenX = CURRENT_X;
+    // this.lastScreenY = CURRENT_Y;
+  }
   /**
    * スタンプをクリックしているかを調べ、アクティブなスタンプをクリックしていればそのクリック箇所も調べる
    * @param {object} event クリックイベント
    * @return {boolean} onStickerFlag いずれかのスタンプ上をクリックしていればtrueを返す
    */
   judgeWhereClickOnTheSticker(event) {
+    console.log(event);
+    const rect = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      event.type === 'touchstart'
+        ? event.touches[0].clientX - window.pageXOffset - rect.left
+        : event.offsetX;
+    const OFFSET_Y =
+      event.type === 'touchstart'
+        ? event.touches[0].clientY - window.pageYOffset - rect.top
+        : event.offsetY;
+
     let onStickerFlag = false;
 
     for (let i = 0; i < this.stickersOnCanvas.length; i++) {
       const STICKER_OBJ = this.stickersOnCanvas[i];
-      let minPointX = STICKER_OBJ.positionX;
-      let maxPointX = STICKER_OBJ.positionX + STICKER_OBJ.width;
-      let minPointY = STICKER_OBJ.positionY;
-      let maxPointY = STICKER_OBJ.positionY + STICKER_OBJ.height;
+      let minPointX = STICKER_OBJ.leftTopPoint.x;
+      let maxPointX =
+        STICKER_OBJ.leftTopPoint.x + STICKER_OBJ.width * STICKER_OBJ.scale;
+      let minPointY = STICKER_OBJ.leftTopPoint.y;
+      let maxPointY =
+        STICKER_OBJ.leftTopPoint.y + STICKER_OBJ.height * STICKER_OBJ.scale;
 
       //最後のスタンプ（現アクティブスタンプ）のみクリック範囲拡大
       if (i === this.stickersOnCanvas.length - 1) {
@@ -190,17 +271,19 @@ export default class extends Events {
         maxPointY += this.RANGE_OFFSET;
       }
 
+      // console.log(OFFSET_X);
       //クリック地点がどのステッカーの上にあるか捜査
       if (
-        minPointX <= event.offsetX &&
-        event.offsetX <= maxPointX &&
-        minPointY <= event.offsetY &&
-        event.offsetY <= maxPointY
+        minPointX <= OFFSET_X &&
+        OFFSET_X <= maxPointX &&
+        minPointY <= OFFSET_Y &&
+        OFFSET_Y <= maxPointY
       ) {
         this.activeStickerId = STICKER_OBJ.id;
         if (i === this.stickersOnCanvas.length - 1) {
           this.judgeClickOnTheLine(
-            event,
+            OFFSET_X,
+            OFFSET_Y,
             minPointX,
             maxPointX,
             minPointY,
@@ -225,16 +308,17 @@ export default class extends Events {
    * @param {int} maxPointY 枠線のy最大値
    */
   judgeClickOnTheLine(
-    mouseDownEvent,
+    offsetX,
+    offsetY,
     minPointX,
     maxPointX,
     minPointY,
     maxPointY
   ) {
-    this.judgeLeftLine(mouseDownEvent.offsetX, minPointX);
-    this.judgeBottomLine(mouseDownEvent.offsetY, maxPointY);
-    this.judgeRightLine(mouseDownEvent.offsetX, maxPointX);
-    this.judgeTopLine(mouseDownEvent.offsetY, minPointY);
+    this.judgeLeftLine(offsetX, minPointX);
+    this.judgeBottomLine(offsetY, maxPointY);
+    this.judgeRightLine(offsetX, maxPointX);
+    this.judgeTopLine(offsetY, minPointY);
   }
 
   judgeLeftLine(clickPointX, minPointX) {
@@ -281,9 +365,6 @@ export default class extends Events {
     }
   }
 
-  /**
-   * スタンプが格納されている配列を操作する。クリックされたスタンプを配列の最後に移動
-   */
   decideOperatedSticker() {
     //現在アクティブ状態のスタンプが何番目の配列に入っているか取得
     const INDEX_OPERATED_STICKER = this.stickersOnCanvas.findIndex(
@@ -299,11 +380,11 @@ export default class extends Events {
     //アクティブなスタンプの初期状態を保持
     this.stickerPosition_past.x = this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
-    ].positionX;
+    ].leftTopPoint.x;
 
     this.stickerPosition_past.y = this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
-    ].positionY;
+    ].leftTopPoint.y;
 
     this.stickerSize_past.width = this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
@@ -315,13 +396,11 @@ export default class extends Events {
   }
 
   moveSticker() {
-    this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].positionX += this.diffX;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+      this.diff.x + this.stickerPosition_past.x;
 
-    this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].positionY += this.diffY;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+      this.diff.y + this.stickerPosition_past.y;
   }
 
   resizeSticker() {
@@ -346,104 +425,82 @@ export default class extends Events {
         break;
     }
   }
-
-  // adjustSize(width, hight) {
-  //   const LAST_INDEX = this.stickersOnCanvas.length - 1;
-  // }
-
-  // resize(diffX, diffY) {
-  //   const LAST_INDEX = this.stickersOnCanvas.length - 1;
-  //   const STICKER = this.stickersOnCanvas[LAST_INDEX];
-  //   const WIDTH = STICKER.width + Math.abs(diffX);
-  //   const HEIGHT = STICKER.height + Math.abs(diffY);
-  //   this.adjustSize(WIDTH, HEIGHT);
-  // }
-
-  // resizeHandleRightBottom() {
-  //   const DIFF_X = this.diffX;
-  //   const DIFF_Y = this.diffY;
-
-  //   this.resize(DIFF_X, DIFF_Y);
-  // }
-
   resizeHandleLeftTop() {
     const ASPECT = 1;
-    if (-this.diffY <= -this.diffX) {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width += -this
-        .diffX;
+    if (-this.diff.y <= -this.diff.x) {
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
+        this.stickerSize_past.width + -this.diff.x;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[
-        this.stickersOnCanvas.length - 1
-      ].positionX += this.diffX;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY +=
-        this.diffX * ASPECT;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+        this.stickerPosition_past.x + this.diff.x;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+        this.stickerPosition_past.y + this.diff.x;
     } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height += -this
-        .diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
+        this.stickerSize_past.height + -this.diff.y;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY +=
-        this.diffY * ASPECT;
-      this.stickersOnCanvas[
-        this.stickersOnCanvas.length - 1
-      ].positionX += this.diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+        this.stickerPosition_past.y + this.diff.y;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+        this.stickerPosition_past.x + this.diff.y;
     }
   }
   resizeHandleLeftBottom() {
     const ASPECT = 1;
-    if (this.diffY <= -this.diffX) {
+    if (this.diff.y <= -this.diff.x) {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + -this.diffX;
+        this.stickerSize_past.width + -this.diff.x;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionX =
-        this.stickerPosition_past.x + this.diffX;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+        this.stickerPosition_past.x + this.diff.x;
     } else {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + this.diffY;
+        this.stickerSize_past.height + this.diff.y;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionX =
-        this.stickerPosition_past.x + -this.diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+        this.stickerPosition_past.x + -this.diff.y;
     }
   }
   resizeHandleRightBottom() {
     const ASPECT = 1;
-    if (this.diffY <= this.diffX) {
+    if (this.diff.y <= this.diff.x) {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + this.diffX;
+        this.stickerSize_past.width + this.diff.x;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
     } else {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + this.diffY;
+        this.stickerSize_past.height + this.diff.y;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
     }
   }
   resizeHandleRightTop() {
     const ASPECT = 1;
-    if (-this.diffY <= this.diffX) {
+    if (-this.diff.y <= this.diff.x) {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + this.diffX;
+        this.stickerSize_past.width + this.diff.x;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY =
-        this.stickerPosition_past.y + -this.diffX;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+        this.stickerPosition_past.y + -this.diff.x;
     } else {
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + -this.diffY;
+        this.stickerSize_past.height + -this.diff.y;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
         this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].positionY =
-        this.stickerPosition_past.y + this.diffY;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+        this.stickerPosition_past.y + this.diff.y;
     }
   }
 
@@ -479,10 +536,11 @@ export default class extends Events {
       }
 
       img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].positionX,
-        y = this.stickersOnCanvas[i].positionY,
-        width = this.stickersOnCanvas[i].width,
-        height = this.stickersOnCanvas[i].height;
+      let x = this.stickersOnCanvas[i].leftTopPoint.x,
+        y = this.stickersOnCanvas[i].leftTopPoint.y,
+        width = this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale,
+        height =
+          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
       this.drawFrameLine(x, y, width, height, color);
@@ -522,10 +580,11 @@ export default class extends Events {
     //スタンプの配列を描画
     for (let i = 0; i < this.stickersOnCanvas.length; i++) {
       img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].positionX,
-        y = this.stickersOnCanvas[i].positionY,
-        width = this.stickersOnCanvas[i].width,
-        height = this.stickersOnCanvas[i].height;
+      let x = this.stickersOnCanvas[i].leftTopPoint.x,
+        y = this.stickersOnCanvas[i].leftTopPoint.y,
+        width = this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale,
+        height =
+          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
     }
