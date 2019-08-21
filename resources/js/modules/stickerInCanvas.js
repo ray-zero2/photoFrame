@@ -205,6 +205,8 @@ export default class extends Events {
     const X2 = TOUCHES_ARRAY[1].screenX;
     const Y1 = TOUCHES_ARRAY[0].screenY;
     const Y2 = TOUCHES_ARRAY[1].screenY;
+    this.diff.x = 0;
+    this.diff.y = 0;
     this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
     this.pointerPosition.startX = (X2 + X1) / 2;
     this.pointerPosition.startY = (Y2 + Y1) / 2;
