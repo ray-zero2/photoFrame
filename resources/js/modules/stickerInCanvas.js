@@ -444,19 +444,19 @@ export default class extends Events {
   resizeSticker(offsetX, offsetY) {
     switch (this.clickProperty) {
       case this.LEFT_TOP_POINT:
-        // console.log('left top point');
+        console.log('left top point');
         this.resizeHandleLeftTop(offsetX, offsetY);
         break;
       case this.LEFT_BOTTOM_POINT:
-        // console.log('left bottom point');
+        console.log('left bottom point');
         this.resizeHandleLeftBottom(offsetX, offsetY);
         break;
       case this.RIGHT_BOTTOM_POINT:
-        // console.log('right bottom point');
+        console.log('right bottom point');
         this.resizeHandleRightBottom(offsetX, offsetY);
         break;
       case this.RIGHT_TOP_POINT:
-        // console.log('right top point');
+        console.log('right top point');
         this.resizeHandleRightTop(offsetX, offsetY);
         break;
       default:
