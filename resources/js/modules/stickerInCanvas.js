@@ -400,18 +400,20 @@ export default class extends Events {
   }
 
   pinchSticker(SCALE) {
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *= SCALE;
-
     const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
     ];
-    const WIDTH = ACTIVE_STICKER_OBJ.width * ACTIVE_STICKER_OBJ.scale;
-    const HEIGHT = ACTIVE_STICKER_OBJ.height * ACTIVE_STICKER_OBJ.scale;
 
+    const DIFF_WIDTH =
+      ACTIVE_STICKER_OBJ.width * ACTIVE_STICKER_OBJ.scale * (SCALE - 1);
+    const DIFF_HEIGHT =
+      ACTIVE_STICKER_OBJ.height * ACTIVE_STICKER_OBJ.scale * (SCALE - 1);
+
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *= SCALE;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x -=
-      WIDTH / 2;
+      DIFF_WIDTH / 2;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y -=
-      HEIGHT / 2;
+      DIFF_HEIGHT / 2;
   }
 
   resizeSticker() {
