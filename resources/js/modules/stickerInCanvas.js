@@ -222,15 +222,10 @@ export default class extends Events {
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
     //active Stickerのscaleを見たい（実装途中）
-    console.log(SCALE);
+    // console.log(SCALE);
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *= SCALE;
-
-    // this.diffX = CURRENT_X - this.lastScreenX;
-    // this.diffY = CURRENT_Y - this.lastScreenY;
-    // this.lastTranslateX += this.diffX;
-    // this.lastTranslateY += this.diffY;
-    // this.moveImage();
+    this.pinchSticker(SCALE);
+    // this.moveSticker();
     this.renderStickers();
     this.lastLength = CURRENT_LENGTH;
     // this.lastScreenX = CURRENT_X;
@@ -402,6 +397,21 @@ export default class extends Events {
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
       this.diff.y + this.stickerPosition_past.y;
+  }
+
+  pinchSticker(SCALE) {
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *= SCALE;
+
+    const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[
+      this.stickersOnCanvas.length - 1
+    ];
+    const WIDTH = ACTIVE_STICKER_OBJ.width * ACTIVE_STICKER_OBJ.scale;
+    const HEIGHT = ACTIVE_STICKER_OBJ.height * ACTIVE_STICKER_OBJ.scale;
+
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x -=
+      WIDTH / 2;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y -=
+      HEIGHT / 2;
   }
 
   resizeSticker() {
