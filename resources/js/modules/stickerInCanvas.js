@@ -220,10 +220,11 @@ export default class extends Events {
     this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
     // this.pointerPosition.startX = (X2 + X1) / 2;
     // this.pointerPosition.startY = (Y2 + Y1) / 2;
-    this.this.isDoubleTouched = true;
+    this.isDoubleTouched = true;
   }
 
   doubleTouchMove(event) {
+    console.log('doubleTouchMove  Start');
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
     const X2 = TOUCHES_ARRAY[1].screenX;
