@@ -55,7 +55,7 @@ export default class extends Events {
     this.aspect = 1;
 
     //メンバ変数だけど一旦定数扱いに
-    this.RANGE_OFFSET = 5; //クリック範囲のオフセット
+    this.RANGE_OFFSET = 10; //クリック範囲のオフセット
 
     //ライン上クリックの判定に必要な定数
     this.LEFT_LINE = 1;
