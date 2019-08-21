@@ -42,6 +42,10 @@ export default class extends Events {
       currentY: 0
     };
     this.diff = { x: 0, y: 0 };
+    this.diffX = 0;
+    this.diffY = 0;
+    this.lastScreenX = 0;
+    this.lastScreenY = 0;
     this.isStickerTouched = false;
     this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
@@ -175,8 +179,8 @@ export default class extends Events {
       event.type === 'touchstart' ? event.touches[0].screenX : event.screenX;
     const START_Y =
       event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
-    this.pointerPosition.startX = START_X;
-    this.pointerPosition.startY = START_Y;
+    this.lastScreenX = START_X;
+    this.lastScreenY = START_Y;
     this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
     if (this.isStickerTouched) {
       this.decideOperatedSticker(event);
@@ -192,11 +196,17 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
     this.pointerPosition.currentX = CURRENT_X;
     this.pointerPosition.currentY = CURRENT_Y;
-    this.diff.x = CURRENT_X - this.pointerPosition.startX;
-    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
+    this.diffX = CURRENT_X - this.lastScreenX;
+    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.lastTranslateX += this.diffX;
+    this.lastTranslateY += this.diffY;
+    // this.diff.x = CURRENT_X - this.pointerPosition.startX;
+    // this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
     this.operateSticker();
     this.renderStickers();
+    this.lastScreenX = CURRENT_X;
+    this.lastScreenY = CURRENT_Y;
   }
 
   doubleTouchStart(event) {
@@ -205,12 +215,12 @@ export default class extends Events {
     const X2 = TOUCHES_ARRAY[1].screenX;
     const Y1 = TOUCHES_ARRAY[0].screenY;
     const Y2 = TOUCHES_ARRAY[1].screenY;
-    this.diff.x = 0;
-    this.diff.y = 0;
+    this.lastScreenX = (X2 + X1) / 2;
+    this.lastScreenY = (Y2 + Y1) / 2;
     this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
-    this.pointerPosition.startX = (X2 + X1) / 2;
-    this.pointerPosition.startY = (Y2 + Y1) / 2;
-    this.isDoubleTouched = true;
+    // this.pointerPosition.startX = (X2 + X1) / 2;
+    // this.pointerPosition.startY = (Y2 + Y1) / 2;
+    this.this.isDoubleTouched = true;
   }
 
   doubleTouchMove(event) {
@@ -225,15 +235,16 @@ export default class extends Events {
     const SCALE = CURRENT_LENGTH / this.lastLength;
     //active Stickerのscaleを見たい（実装途中）
     // console.log(SCALE);
-
-    this.diff.x = CURRENT_X - this.pointerPosition.startX;
-    this.diff.y = CURRENT_Y - this.pointerPosition.startY;
+    this.diffX = CURRENT_X - this.lastScreenX;
+    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.lastTranslateX += this.diffX;
+    this.lastTranslateY += this.diffY;
     this.pinchSticker(SCALE);
     this.moveSticker();
     this.renderStickers();
     this.lastLength = CURRENT_LENGTH;
-    // this.lastScreenX = CURRENT_X;
-    // this.lastScreenY = CURRENT_Y;
+    this.lastScreenX = CURRENT_X;
+    this.lastScreenY = CURRENT_Y;
   }
   /**
    * スタンプをクリックしているかを調べ、アクティブなスタンプをクリックしていればそのクリック箇所も調べる
@@ -396,11 +407,13 @@ export default class extends Events {
   }
 
   moveSticker() {
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
-      this.diff.x + this.stickerPosition_past.x;
+    this.stickersOnCanvas[
+      this.stickersOnCanvas.length - 1
+    ].leftTopPoint.x += this.diffX;
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
-      this.diff.y + this.stickerPosition_past.y;
+    this.stickersOnCanvas[
+      this.stickersOnCanvas.length - 1
+    ].leftTopPoint.y += this.diffY;
   }
 
   pinchSticker(SCALE) {
