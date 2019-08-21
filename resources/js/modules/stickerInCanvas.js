@@ -222,7 +222,7 @@ export default class extends Events {
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
 
     //active Stickerのscaleを見たい（実装途中）
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *=
       CURRENT_LENGTH / this.lastLength;
 
     // this.diffX = CURRENT_X - this.lastScreenX;
