@@ -52,6 +52,7 @@ export default class extends Events {
     this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
     this.stickerPosition_past = { x: 0, y: 0 };
     this.stickerSize_past = { width: 0, height: 0 };
+    this.aspect = 1;
 
     //メンバ変数だけど一旦定数扱いに
     this.RANGE_OFFSET = 5; //クリック範囲のオフセット
@@ -203,7 +204,7 @@ export default class extends Events {
     // this.diff.x = CURRENT_X - this.pointerPosition.startX;
     // this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
-    this.operateSticker();
+    this.operateSticker(event);
     this.renderStickers();
     this.lastScreenX = CURRENT_X;
     this.lastScreenY = CURRENT_Y;
@@ -218,8 +219,6 @@ export default class extends Events {
     this.lastScreenX = (X2 + X1) / 2;
     this.lastScreenY = (Y2 + Y1) / 2;
     this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
-    // this.pointerPosition.startX = (X2 + X1) / 2;
-    // this.pointerPosition.startY = (Y2 + Y1) / 2;
     this.isDoubleTouched = true;
   }
 
@@ -234,8 +233,7 @@ export default class extends Events {
     const CURRENT_Y = (Y2 + Y1) / 2;
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
-    //active Stickerのscaleを見たい（実装途中）
-    // console.log(SCALE);
+
     this.diffX = CURRENT_X - this.lastScreenX;
     this.diffY = CURRENT_Y - this.lastScreenY;
     this.lastTranslateX += this.diffX;
@@ -369,11 +367,20 @@ export default class extends Events {
   /**
    * ステッカーのクリックした箇所に対応する処理を実行
    */
-  operateSticker() {
+  operateSticker(event) {
+    const rect = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      event.type === 'touchmove'
+        ? event.touches[0].clientX - window.pageXOffset - rect.left
+        : event.offsetX;
+    const OFFSET_Y =
+      event.type === 'touchmove'
+        ? event.touches[0].clientY - window.pageYOffset - rect.top
+        : event.offsetY;
     if (this.clickProperty === 0) {
       this.moveSticker();
     } else {
-      this.resizeSticker();
+      this.resizeSticker(OFFSET_X, OFFSET_Y);
     }
   }
 
@@ -434,108 +441,84 @@ export default class extends Events {
       DIFF_HEIGHT / 2;
   }
 
-  resizeSticker() {
+  resizeSticker(offsetX, offsetY) {
     switch (this.clickProperty) {
       case this.LEFT_TOP_POINT:
         // console.log('left top point');
-        this.resizeHandleLeftTop();
+        this.resizeHandleLeftTop(offsetX, offsetY);
         break;
       case this.LEFT_BOTTOM_POINT:
         // console.log('left bottom point');
-        this.resizeHandleLeftBottom();
+        this.resizeHandleLeftBottom(offsetX, offsetY);
         break;
       case this.RIGHT_BOTTOM_POINT:
         // console.log('right bottom point');
-        this.resizeHandleRightBottom();
+        this.resizeHandleRightBottom(offsetX, offsetY);
         break;
       case this.RIGHT_TOP_POINT:
         // console.log('right top point');
-        this.resizeHandleRightTop();
+        this.resizeHandleRightTop(offsetX, offsetY);
         break;
       default:
         break;
     }
   }
-  resizeHandleLeftTop() {
-    const ASPECT = 1;
-    if (-this.diff.y <= -this.diff.x) {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + -this.diff.x;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
+  resizeHandleLeftTop(offsetX, offsetY) {
+    const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
+    const RIGHT = STICKER.width * STICKER.scale + STICKER.leftTopPoint.x;
+    const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
+    const WIDTH = RIGHT - offsetX;
+    const HEIGHT = BOTTOM - offsetY;
+    this.adjustSizing(WIDTH, HEIGHT);
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
-        this.stickerPosition_past.x + this.diff.x;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
-        this.stickerPosition_past.y + this.diff.x;
-    } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + -this.diff.y;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
-
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
-        this.stickerPosition_past.y + this.diff.y;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
-        this.stickerPosition_past.x + this.diff.y;
-    }
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+      RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+      BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
-  resizeHandleLeftBottom() {
-    const ASPECT = 1;
-    if (this.diff.y <= -this.diff.x) {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + -this.diff.x;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
-        this.stickerPosition_past.x + this.diff.x;
-    } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + this.diff.y;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
+  resizeHandleLeftBottom(offsetX, offsetY) {
+    const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
+    const RIGHT = STICKER.width * STICKER.scale + STICKER.leftTopPoint.x;
+    const WIDTH = RIGHT - offsetX;
+    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
+    this.adjustSizing(WIDTH, HEIGHT);
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
-        this.stickerPosition_past.x + -this.diff.y;
-    }
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+      RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
   }
-  resizeHandleRightBottom() {
-    const ASPECT = 1;
-    if (this.diff.y <= this.diff.x) {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + this.diff.x;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
-    } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + this.diff.y;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
-    }
+
+  resizeHandleRightBottom(offsetX, offsetY) {
+    const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
+    const WIDTH = offsetX - STICKER.leftTopPoint.x;
+    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
+    this.adjustSizing(WIDTH, HEIGHT);
   }
-  resizeHandleRightTop() {
-    const ASPECT = 1;
-    if (-this.diff.y <= this.diff.x) {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickerSize_past.width + this.diff.x;
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width * ASPECT;
 
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
-        this.stickerPosition_past.y + -this.diff.x;
+  resizeHandleRightTop(offsetX, offsetY) {
+    const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
+    const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
+    const WIDTH = offsetX - STICKER.leftTopPoint.x;
+    const HEIGHT = BOTTOM - offsetY;
+    this.adjustSizing(WIDTH, HEIGHT);
+
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+      BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
+  }
+
+  adjustSizing(width, height, x = 0, y = 0) {
+    if (width >= height) {
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width = width;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
+        width * this.aspect;
     } else {
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height =
-        this.stickerSize_past.height + -this.diff.y;
       this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width =
-        this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height * ASPECT;
-
-      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
-        this.stickerPosition_past.y + this.diff.y;
+        height * this.aspect;
+      this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height = height;
     }
   }
 
-  handleClickStickerList(element, event) {
+  handleClickStickerList(element) {
     this.addSticker(element);
     this.renderStickers();
   }
