@@ -22,8 +22,8 @@ export default class extends Events {
     const MEDIA = navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
-        width: 300,
-        height: 300
+        width: 600,
+        height: 600
       },
       audio: false
     });
@@ -45,8 +45,8 @@ export default class extends Events {
   }
 
   renderCameraImageInCanvas() {
-    const VIDEO_WIDTH = this.$video.offsetWidth;
-    const VIDEO_HEIGHT = this.$video.offsetHeight;
+    const VIDEO_WIDTH = this.$video.width;
+    const VIDEO_HEIGHT = this.$video.height;
     this.context.drawImage(this.$video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
     this.$video.classList.add('js-hide');
     this.$captureButton.classList.add('js-hide');

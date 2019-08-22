@@ -3,9 +3,9 @@ class Sticker {
   constructor(stickerNum, idNumber) {
     this.id = idNumber;
     this.src = `./images/sticker/sticker${stickerNum}.png`;
-    this.leftTopPoint = { x: 100, y: 100 };
-    this.width = 100;
-    this.height = 100;
+    this.leftTopPoint = { x: 200, y: 200 };
+    this.width = 200;
+    this.height = 200;
   }
 }
 export default class extends Events {
@@ -27,13 +27,21 @@ export default class extends Events {
     this.$backImageScreen.height = this.$canvas.height;
     this.backImageScreenContext = this.$backImageScreen.getContext('2d');
     this.backImageScreenContext.putImageData(backgroundImage, 0, 0);
-    this.context.drawImage(this.$backImageScreen, 0, 0, 300, 300);
+    this.context.drawImage(
+      this.$backImageScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
 
     this.$stickerWrapper = document.querySelector('.sticker-wrapper');
     this.$stickers = document.querySelectorAll('.js-sticker');
     this.$removeStickerButton = document.querySelector('.js-removeSticker');
     this.$createImageButton = document.querySelector('.js-createImageButton');
 
+    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
+    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
     // this.pointerPosition = {
     //   startX: 0,
     //   startY: 0,
@@ -54,7 +62,8 @@ export default class extends Events {
     this.aspect = 1;
 
     //メンバ変数だけど一旦定数扱いに
-    this.RANGE_OFFSET = 15; //クリック範囲のオフセット
+    this.RANGE_OFFSET =
+      15 * Math.max(this.magnificationRatioX, this.magnificationRatioY); //クリック範囲のオフセット
 
     //ライン上クリックの判定に必要な定数
     this.LEFT_LINE = 1;
@@ -197,8 +206,8 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
     // this.pointerPosition.currentX = CURRENT_X;
     // this.pointerPosition.currentY = CURRENT_Y;
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
+    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
     // this.diff.x = CURRENT_X - this.pointerPosition.startX;
@@ -234,8 +243,8 @@ export default class extends Events {
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
 
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
+    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
     this.pinchSticker(SCALE);
@@ -254,13 +263,13 @@ export default class extends Events {
     console.log(event);
     const rect = event.target.getBoundingClientRect();
     const OFFSET_X =
-      event.type === 'touchstart'
+      (event.type === 'touchstart'
         ? event.touches[0].clientX - window.pageXOffset - rect.left
-        : event.offsetX;
+        : event.offsetX) * this.magnificationRatioX;
     const OFFSET_Y =
-      event.type === 'touchstart'
+      (event.type === 'touchstart'
         ? event.touches[0].clientY - window.pageYOffset - rect.top
-        : event.offsetY;
+        : event.offsetY) * this.magnificationRatioY;
 
     let onStickerFlag = false;
 
@@ -368,13 +377,13 @@ export default class extends Events {
   operateSticker(event) {
     const rect = event.target.getBoundingClientRect();
     const OFFSET_X =
-      event.type === 'touchmove'
+      (event.type === 'touchstart'
         ? event.touches[0].clientX - window.pageXOffset - rect.left
-        : event.offsetX;
+        : event.offsetX) * this.magnificationRatioX;
     const OFFSET_Y =
-      event.type === 'touchmove'
+      (event.type === 'touchstart'
         ? event.touches[0].clientY - window.pageYOffset - rect.top
-        : event.offsetY;
+        : event.offsetY) * this.magnificationRatioY;
     if (this.clickProperty === 0) {
       this.moveSticker();
     } else {
@@ -472,7 +481,7 @@ export default class extends Events {
     const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = BOTTOM - offsetY;
-    this.adjustSizing(WIDTH, HEIGHT);
+    this.adjustSize(WIDTH, HEIGHT);
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
@@ -485,7 +494,7 @@ export default class extends Events {
     // const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
     // const WIDTH = STICKER.width * STICKER.scale + -this.diffX;
     // const HEIGHT = STICKER.height * STICKER.scale + -this.diffY;
-    // this.adjustSizing(WIDTH, HEIGHT);
+    // this.adjustSize(WIDTH, HEIGHT);
     // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
     //   RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
     // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
@@ -497,7 +506,7 @@ export default class extends Events {
     const RIGHT = STICKER.width + STICKER.leftTopPoint.x;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = offsetY - STICKER.leftTopPoint.y;
-    this.adjustSizing(WIDTH, HEIGHT);
+    this.adjustSize(WIDTH, HEIGHT);
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
@@ -507,7 +516,7 @@ export default class extends Events {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
     const WIDTH = offsetX - STICKER.leftTopPoint.x;
     const HEIGHT = offsetY - STICKER.leftTopPoint.y;
-    this.adjustSizing(WIDTH, HEIGHT);
+    this.adjustSize(WIDTH, HEIGHT);
     // const LAST_INDEX = this.stickersOnCanvas.length - 1;
     // const STICKER = this.stickersOnCanvas[LAST_INDEX];
     // const WIDTH = STICKER.width + this.diffX;
@@ -519,13 +528,13 @@ export default class extends Events {
     const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
     const WIDTH = offsetX - STICKER.leftTopPoint.x;
     const HEIGHT = BOTTOM - offsetY;
-    this.adjustSizing(WIDTH, HEIGHT);
+    this.adjustSize(WIDTH, HEIGHT);
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
-  adjustSize(width, height, x = 0, y = 0) {
+  adjustSize(width, height) {
     const LAST_INDEX = this.stickersOnCanvas.length - 1;
     console.log(width);
 
@@ -556,8 +565,19 @@ export default class extends Events {
 
   renderStickers() {
     //オフスクリーンに描画
-    this.offScreenContext.clearRect(0, 0, 300, 300);
-    this.offScreenContext.drawImage(this.$backImageScreen, 0, 0, 300, 300);
+    this.offScreenContext.clearRect(
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
+    this.offScreenContext.drawImage(
+      this.$backImageScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
     let img = new Image();
 
     //枠線の色とマークの大きさ
@@ -584,8 +604,14 @@ export default class extends Events {
     }
 
     //まとめてキャンバスへ描画
-    this.context.clearRect(0, 0, 300, 300);
-    this.context.drawImage(this.$offScreen, 0, 0, 300, 300);
+    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
+    this.context.drawImage(
+      this.$offScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
   }
 
   drawFrameLine(x, y, width, height, color) {
@@ -609,8 +635,19 @@ export default class extends Events {
   }
   renderOutputImage() {
     //オフスクリーンに描画
-    this.offScreenContext.clearRect(0, 0, 300, 300);
-    this.offScreenContext.drawImage(this.$backImageScreen, 0, 0, 300, 300);
+    this.offScreenContext.clearRect(
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
+    this.offScreenContext.drawImage(
+      this.$backImageScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
     let img = new Image();
 
     //スタンプの配列を描画
@@ -624,8 +661,14 @@ export default class extends Events {
       this.offScreenContext.drawImage(img, x, y, width, height);
     }
     //まとめてキャンバスへ描画
-    this.context.clearRect(0, 0, 300, 300);
-    this.context.drawImage(this.$offScreen, 0, 0, 300, 300);
+    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
+    this.context.drawImage(
+      this.$offScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
   }
   createImage() {
     let png = this.$canvas.toDataURL();

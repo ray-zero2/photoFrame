@@ -17,6 +17,9 @@ export default class extends Events {
     this.$scaleUpButton = document.querySelector('.js-scaleUp');
     this.$scaleDownButton = document.querySelector('.js-scaleDown');
     this.$scaleOkButton = document.querySelector('.js-scaleOk');
+
+    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
+    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
   }
 
   init(backgroundImage) {
@@ -27,8 +30,8 @@ export default class extends Events {
     //変数等
     this.originalImage = backgroundImage;
 
-    this.imageWidth = 300;
-    this.imageHeight = 300;
+    this.imageWidth = this.$canvas.width;
+    this.imageHeight = this.$canvas.height;
 
     this.lastTranslateX = 0;
     this.lastTranslateY = 0;
@@ -172,8 +175,8 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
     const CURRENT_Y =
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
+    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
     this.moveImage();
@@ -193,8 +196,8 @@ export default class extends Events {
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
 
-    this.diffX = CURRENT_X - this.lastScreenX;
-    this.diffY = CURRENT_Y - this.lastScreenY;
+    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
+    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
     this.resize(SCALE);
@@ -212,13 +215,15 @@ export default class extends Events {
     const GEOMETRIC_CENTER_Y =
       this.positionY + (this.imageHeight * this.lastScale) / 2;
 
-    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - 150; //150: キャンバスサイズの半分
-    const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - 150;
+    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - this.$canvas.width / 2; //150: キャンバスサイズの半分
+    const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - this.$canvas.height / 2;
 
     this.renderWidth = this.imageWidth * CURRENT_SCALE;
     this.renderHeight = this.imageHeight * CURRENT_SCALE;
-    this.positionX = SCALE * CENTER_DIFF_X - this.renderWidth / 2 + 150;
-    this.positionY = SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + 150;
+    this.positionX =
+      SCALE * CENTER_DIFF_X - this.renderWidth / 2 + this.$canvas.width / 2;
+    this.positionY =
+      SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + this.$canvas.height / 2;
     this.lastScale = CURRENT_SCALE;
   }
 
@@ -238,7 +243,7 @@ export default class extends Events {
 
   render() {
     this.adjustSize();
-    this.context.clearRect(0, 0, 300, 300);
+    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
     this.context.drawImage(
       this.$offScreen,
