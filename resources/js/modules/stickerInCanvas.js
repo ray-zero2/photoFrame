@@ -42,13 +42,7 @@ export default class extends Events {
 
     this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
     this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
-    // this.pointerPosition = {
-    //   startX: 0,
-    //   startY: 0,
-    //   currentX: 0,
-    //   currentY: 0
-    // };
-    this.diff = { x: 0, y: 0 };
+
     this.diffX = 0;
     this.diffY = 0;
     this.lastScreenX = 0;
@@ -57,8 +51,6 @@ export default class extends Events {
     this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeStickerId = 0; //現在アクティブ状態のスタンプid
     this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
-    this.stickerPosition_past = { x: 0, y: 0 };
-    this.stickerSize_past = { width: 0, height: 0 };
     this.aspect = 1;
 
     //メンバ変数だけど一旦定数扱いに
@@ -131,15 +123,6 @@ export default class extends Events {
   }
 
   handleMouseDown(event) {
-    // const START_X = event.screenX;
-    // const START_Y = event.screenY;
-    // this.pointerPosition.startX = START_X;
-    // this.pointerPosition.startY = START_Y;
-    // this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
-    // if (this.isStickerTouched) {
-    //   this.decideOperatedSticker(event);
-    //   this.renderStickers();
-    // }
     this.singleTouchStart(event);
   }
 
@@ -149,10 +132,6 @@ export default class extends Events {
 
   handleMouseUp() {
     this.isStickerTouched = false;
-    // this.pointerPosition.startX = 0;
-    // this.pointerPosition.startY = 0;
-    // this.pointerPosition.currentX = 0;
-    // this.pointerPosition.currentY = 0;
     this.clickProperty = 0;
   }
 
@@ -210,8 +189,6 @@ export default class extends Events {
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
-    // this.diff.x = CURRENT_X - this.pointerPosition.startX;
-    // this.diff.y = CURRENT_Y - this.pointerPosition.startY;
 
     this.operateSticker(event);
     this.renderStickers();
@@ -377,13 +354,14 @@ export default class extends Events {
   operateSticker(event) {
     const rect = event.target.getBoundingClientRect();
     const OFFSET_X =
-      (event.type === 'touchstart'
+      (event.type === 'touchmove'
         ? event.touches[0].clientX - window.pageXOffset - rect.left
         : event.offsetX) * this.magnificationRatioX;
     const OFFSET_Y =
-      (event.type === 'touchstart'
+      (event.type === 'touchmove'
         ? event.touches[0].clientY - window.pageYOffset - rect.top
         : event.offsetY) * this.magnificationRatioY;
+
     if (this.clickProperty === 0) {
       this.moveSticker();
     } else {
@@ -402,23 +380,6 @@ export default class extends Events {
     const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[INDEX_OPERATED_STICKER];
     this.stickersOnCanvas.splice(INDEX_OPERATED_STICKER, 1);
     this.stickersOnCanvas.push(ACTIVE_STICKER_OBJ);
-
-    //アクティブなスタンプの初期状態を保持
-    this.stickerPosition_past.x = this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].leftTopPoint.x;
-
-    this.stickerPosition_past.y = this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].leftTopPoint.y;
-
-    this.stickerSize_past.width = this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].width;
-
-    this.stickerSize_past.height = this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ].height;
   }
 
   moveSticker() {
