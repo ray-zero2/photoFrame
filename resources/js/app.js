@@ -18,7 +18,12 @@ class App {
   bind() {
     //画面キャプチャ
     this.camera.on('renderCameraImage', canvasData => {
-      this.originalImage = canvasData.getImageData(0, 0, 300, 300);
+      this.originalImage = canvasData.getImageData(
+        0,
+        0,
+        this.$canvas.width,
+        this.$canvas.height
+      );
       this.imageEdit.init(this.originalImage);
     });
 
