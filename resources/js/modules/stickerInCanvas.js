@@ -396,10 +396,10 @@ export default class extends Events {
 
     const WIDTH = ACTIVE_STICKER_OBJ.width;
     const HEIGHT = ACTIVE_STICKER_OBJ.height;
-    console.log(WIDTH);
+    console.log(`first width = ${WIDTH}`);
     this.adjustSize(WIDTH * SCALE, HEIGHT * SCALE);
     const WIDTH_AFTER = this.stickersOnCanvas[LAST_INDEX].width;
-    console.log(WIDTH_AFTER);
+    console.log(`width_after = ${WIDTH_AFTER}`);
     const HEIGHT_AFTER = this.stickersOnCanvas[LAST_INDEX].height;
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
     const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
@@ -475,10 +475,9 @@ export default class extends Events {
 
   adjustSize(width, height) {
     const LAST_INDEX = this.stickersOnCanvas.length - 1;
-    console.log(width);
 
     const ADJUST_WIDTH = Math.max(width, this.RANGE_OFFSET * 3);
-    console.log(ADJUST_WIDTH);
+    console.log(`adjust width = ${ADJUST_WIDTH}`);
     const ADJUST_HEIGHT = Math.max(height, this.RANGE_OFFSET * 3);
     if (width >= height) {
       this.stickersOnCanvas[LAST_INDEX].width = ADJUST_WIDTH;
