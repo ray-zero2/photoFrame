@@ -3,9 +3,9 @@ class Sticker {
   constructor(stickerNum, idNumber) {
     this.id = idNumber;
     this.src = `./images/sticker/sticker${stickerNum}.png`;
-    this.leftTopPoint = { x: 200, y: 200 };
-    this.width = 200;
-    this.height = 200;
+    this.width = 300;
+    this.height = 300;
+    this.position = { x: 300, y: 300 };
   }
 }
 export default class extends Events {
@@ -252,10 +252,10 @@ export default class extends Events {
 
     for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
       const STICKER_OBJ = this.stickersOnCanvas[i];
-      let minPointX = STICKER_OBJ.leftTopPoint.x;
-      let maxPointX = STICKER_OBJ.leftTopPoint.x + STICKER_OBJ.width;
-      let minPointY = STICKER_OBJ.leftTopPoint.y;
-      let maxPointY = STICKER_OBJ.leftTopPoint.y + STICKER_OBJ.height;
+      let minPointX = STICKER_OBJ.position.x;
+      let maxPointX = STICKER_OBJ.position.x + STICKER_OBJ.width;
+      let minPointY = STICKER_OBJ.position.y;
+      let maxPointY = STICKER_OBJ.position.y + STICKER_OBJ.height;
 
       //最後のスタンプ（現アクティブスタンプ）のみクリック範囲拡大
       if (i === this.stickersOnCanvas.length - 1) {
@@ -385,11 +385,11 @@ export default class extends Events {
   moveSticker() {
     this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
-    ].leftTopPoint.x += this.diffX;
+    ].position.x += this.diffX;
 
     this.stickersOnCanvas[
       this.stickersOnCanvas.length - 1
-    ].leftTopPoint.y += this.diffY;
+    ].position.y += this.diffY;
   }
 
   pinchSticker(SCALE) {
@@ -408,9 +408,9 @@ export default class extends Events {
 
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width *= SCALE;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height *= SCALE;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x -=
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x -=
       DIFF_WIDTH / 2;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y -=
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y -=
       DIFF_HEIGHT / 2;
   }
 
@@ -438,45 +438,45 @@ export default class extends Events {
   }
   resizeHandleLeftTop(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const RIGHT = STICKER.width + STICKER.leftTopPoint.x;
-    const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
+    const RIGHT = STICKER.width + STICKER.position.x;
+    const BOTTOM = STICKER.height + STICKER.position.y;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x =
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
 
     // const LAST_INDEX = this.stickersOnCanvas.length - 1;
     // const STICKER = this.stickersOnCanvas[LAST_INDEX];
-    // const RIGHT = STICKER.width * STICKER.scale + STICKER.leftTopPoint.x;
-    // const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
+    // const RIGHT = STICKER.width * STICKER.scale + STICKER.position.x;
+    // const BOTTOM = STICKER.height * STICKER.scale + STICKER.position.y;
     // const WIDTH = STICKER.width * STICKER.scale + -this.diffX;
     // const HEIGHT = STICKER.height * STICKER.scale + -this.diffY;
     // this.adjustSize(WIDTH, HEIGHT);
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x =
     //   RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
     //   BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
   resizeHandleLeftBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const RIGHT = STICKER.width + STICKER.leftTopPoint.x;
+    const RIGHT = STICKER.width + STICKER.position.x;
     const WIDTH = RIGHT - offsetX;
-    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
+    const HEIGHT = offsetY - STICKER.position.y;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x =
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
   }
 
   resizeHandleRightBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const WIDTH = offsetX - STICKER.leftTopPoint.x;
-    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
+    const WIDTH = offsetX - STICKER.position.x;
+    const HEIGHT = offsetY - STICKER.position.y;
     this.adjustSize(WIDTH, HEIGHT);
     // const LAST_INDEX = this.stickersOnCanvas.length - 1;
     // const STICKER = this.stickersOnCanvas[LAST_INDEX];
@@ -486,12 +486,12 @@ export default class extends Events {
 
   resizeHandleRightTop(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
-    const WIDTH = offsetX - STICKER.leftTopPoint.x;
+    const BOTTOM = STICKER.height + STICKER.position.y;
+    const WIDTH = offsetX - STICKER.position.x;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y =
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
@@ -543,6 +543,7 @@ export default class extends Events {
 
     //枠線の色とマークの大きさ
     let color = 'grey';
+    let magRatio = Math.max(this.magnificationRatioX, this.magnificationRatioY);
     let size = 2;
 
     //スタンプの配列を描画
@@ -554,14 +555,14 @@ export default class extends Events {
       }
 
       img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].leftTopPoint.x,
-        y = this.stickersOnCanvas[i].leftTopPoint.y,
+      let x = this.stickersOnCanvas[i].position.x,
+        y = this.stickersOnCanvas[i].position.y,
         width = this.stickersOnCanvas[i].width,
         height = this.stickersOnCanvas[i].height;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
-      this.drawFrameLine(x, y, width, height, color);
-      this.drawCornerMark(x, y, width, height, size);
+      this.drawFrameLine(x, y, width, height, color, magRatio);
+      this.drawCornerMark(x, y, width, height, size, magRatio);
     }
 
     //まとめてキャンバスへ描画
@@ -575,23 +576,25 @@ export default class extends Events {
     );
   }
 
-  drawFrameLine(x, y, width, height, color) {
+  drawFrameLine(x, y, width, height, color, ratio) {
     this.offScreenContext.strokeStyle = color;
+    this.offScreenContext.lineWidth = 1 * ratio;
     this.offScreenContext.beginPath();
     this.offScreenContext.strokeRect(x, y, width, height);
   }
-  drawCornerMark(x, y, width, height, size) {
+  drawCornerMark(x, y, width, height, size, ratio) {
     this.offScreenContext.strokeStyle = 'black';
     this.offScreenContext.fillStyle = 'white';
-    this.drawArc(x, y, size);
-    this.drawArc(x, y + height, size);
-    this.drawArc(x + width, y, size);
-    this.drawArc(x + width, y + height, size);
+    this.drawArc(x, y, size, ratio);
+    this.drawArc(x, y + height, size, ratio);
+    this.drawArc(x + width, y, size, ratio);
+    this.drawArc(x + width, y + height, size, ratio);
   }
 
-  drawArc(x, y, size) {
+  drawArc(x, y, size, ratio) {
+    this.offScreenContext.lineWidth = 1 * ratio;
     this.offScreenContext.beginPath();
-    this.offScreenContext.arc(x, y, size, 0, Math.PI * 2, false);
+    this.offScreenContext.arc(x, y, size * ratio, 0, Math.PI * 2, false);
     this.offScreenContext.stroke();
   }
   renderOutputImage() {
@@ -614,8 +617,8 @@ export default class extends Events {
     //スタンプの配列を描画
     for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
       img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].leftTopPoint.x,
-        y = this.stickersOnCanvas[i].leftTopPoint.y,
+      let x = this.stickersOnCanvas[i].position.x,
+        y = this.stickersOnCanvas[i].position.y,
         width = this.stickersOnCanvas[i].width,
         height = this.stickersOnCanvas[i].height;
 

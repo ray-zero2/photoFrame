@@ -209,7 +209,7 @@ export default class extends Events {
   }
 
   resize(SCALE) {
-    const CURRENT_SCALE = this.lastScale * SCALE;
+    const CURRENT_SCALE = Math.max(this.lastScale * SCALE, 1);
     const GEOMETRIC_CENTER_X =
       this.positionX + (this.imageWidth * this.lastScale) / 2;
     const GEOMETRIC_CENTER_Y =
@@ -225,24 +225,32 @@ export default class extends Events {
     this.positionY =
       SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + this.$canvas.height / 2;
     this.lastScale = CURRENT_SCALE;
+    // this.adjustPosition();
   }
 
   moveImage() {
     this.positionX += this.diffX;
     this.positionY += this.diffY;
-
     this.renderWidth = this.imageWidth * this.lastScale;
     this.renderHeight = this.imageHeight * this.lastScale;
+    // this.adjustPosition();
   }
 
-  adjustSize() {
-    // const WIDTH = Math.max(this.renderWidth, 300);
-    // const HEIGHT = Math.max(this.renderHeight, 300);
-    // const X = Math.abs();
+  adjustPosition() {
+    const WIDTH = this.renderWidth;
+    const HEIGHT = this.renderHeight;
+    let x = this.positionX;
+    let y = this.positionY;
+    x = Math.min(x, 0);
+    y = Math.min(y, 0);
+    x = Math.max(x, -(WIDTH - this.$canvas.width));
+    y = Math.max(y, -(HEIGHT - this.$canvas.height));
+    this.positionX = x;
+    this.positionY = y;
   }
 
   render() {
-    this.adjustSize();
+    this.adjustPosition();
     this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
     this.offScreenContext.putImageData(this.originalImage, 0, 0);
     this.context.drawImage(
