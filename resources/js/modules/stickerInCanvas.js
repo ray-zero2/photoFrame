@@ -11,7 +11,6 @@ class Sticker {
 export default class extends Events {
   constructor(backgroundImage) {
     super();
-
     //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
@@ -113,7 +112,7 @@ export default class extends Events {
     });
 
     this.$createImageButton.addEventListener('click', () => {
-      this.renderOutputImage();
+      this.renderStickers('create');
       this.$stickerWrapper.classList.add('js-hide');
       this.$removeStickerButton.classList.add('js-hide');
       this.$createImageButton.classList.add('js-hide');
@@ -209,7 +208,6 @@ export default class extends Events {
   }
 
   doubleTouchMove(event) {
-    console.log('doubleTouchMove  Start');
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
     const X2 = TOUCHES_ARRAY[1].screenX;
@@ -448,18 +446,6 @@ export default class extends Events {
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
-
-    // const LAST_INDEX = this.stickersOnCanvas.length - 1;
-    // const STICKER = this.stickersOnCanvas[LAST_INDEX];
-    // const RIGHT = STICKER.width * STICKER.scale + STICKER.position.x;
-    // const BOTTOM = STICKER.height * STICKER.scale + STICKER.position.y;
-    // const WIDTH = STICKER.width * STICKER.scale + -this.diffX;
-    // const HEIGHT = STICKER.height * STICKER.scale + -this.diffY;
-    // this.adjustSize(WIDTH, HEIGHT);
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x =
-    //   RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
-    //   BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
   resizeHandleLeftBottom(offsetX, offsetY) {
@@ -478,10 +464,6 @@ export default class extends Events {
     const WIDTH = offsetX - STICKER.position.x;
     const HEIGHT = offsetY - STICKER.position.y;
     this.adjustSize(WIDTH, HEIGHT);
-    // const LAST_INDEX = this.stickersOnCanvas.length - 1;
-    // const STICKER = this.stickersOnCanvas[LAST_INDEX];
-    // const WIDTH = STICKER.width + this.diffX;
-    // const HEIGHT = STICKER.height + this.diffY;
   }
 
   resizeHandleRightTop(offsetX, offsetY) {
@@ -524,7 +506,7 @@ export default class extends Events {
     // console.log(this.stickersOnCanvas);
   }
 
-  renderStickers() {
+  renderStickers(mode = 'default') {
     //オフスクリーンに描画
     this.offScreenContext.clearRect(
       0,
@@ -561,8 +543,10 @@ export default class extends Events {
         height = this.stickersOnCanvas[i].height;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
-      this.drawFrameLine(x, y, width, height, color, magRatio);
-      this.drawCornerMark(x, y, width, height, size, magRatio);
+      if (mode === 'default') {
+        this.drawFrameLine(x, y, width, height, color, magRatio);
+        this.drawCornerMark(x, y, width, height, size, magRatio);
+      }
     }
 
     //まとめてキャンバスへ描画
@@ -597,43 +581,7 @@ export default class extends Events {
     this.offScreenContext.arc(x, y, size * ratio, 0, Math.PI * 2, false);
     this.offScreenContext.stroke();
   }
-  renderOutputImage() {
-    //オフスクリーンに描画
-    this.offScreenContext.clearRect(
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-    this.offScreenContext.drawImage(
-      this.$backImageScreen,
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-    let img = new Image();
 
-    //スタンプの配列を描画
-    for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
-      img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].position.x,
-        y = this.stickersOnCanvas[i].position.y,
-        width = this.stickersOnCanvas[i].width,
-        height = this.stickersOnCanvas[i].height;
-
-      this.offScreenContext.drawImage(img, x, y, width, height);
-    }
-    //まとめてキャンバスへ描画
-    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
-    this.context.drawImage(
-      this.$offScreen,
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-  }
   createImage() {
     let png = this.$canvas.toDataURL();
     document.querySelector('.image').src = png;
