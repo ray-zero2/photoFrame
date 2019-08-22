@@ -7,6 +7,10 @@ export default class extends Events {
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
 
+    //キャンバスの内部での幅と見た目の幅の比率
+    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
+    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
+
     //オフスクリーン
     this.$offScreen = document.createElement('canvas');
     this.$offScreen.width = this.$canvas.width;
@@ -17,9 +21,6 @@ export default class extends Events {
     this.$scaleUpButton = document.querySelector('.js-scaleUp');
     this.$scaleDownButton = document.querySelector('.js-scaleDown');
     this.$scaleOkButton = document.querySelector('.js-scaleOk');
-
-    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
-    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
   }
 
   init(backgroundImage) {

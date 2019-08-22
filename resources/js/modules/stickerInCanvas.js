@@ -15,6 +15,9 @@ export default class extends Events {
     //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
+    //キャンバスの内部での幅と見た目の幅の比率
+    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
+    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
 
     //オフスクリーン
     this.$offScreen = document.createElement('canvas');
@@ -39,9 +42,6 @@ export default class extends Events {
     this.$stickers = document.querySelectorAll('.js-sticker');
     this.$removeStickerButton = document.querySelector('.js-removeSticker');
     this.$createImageButton = document.querySelector('.js-createImageButton');
-
-    this.magnificationRatioX = this.$canvas.width / this.$canvas.offsetWidth;
-    this.magnificationRatioY = this.$canvas.height / this.$canvas.offsetHeight;
 
     this.diffX = 0;
     this.diffY = 0;
@@ -183,8 +183,6 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
     const CURRENT_Y =
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
-    // this.pointerPosition.currentX = CURRENT_X;
-    // this.pointerPosition.currentY = CURRENT_Y;
     this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
@@ -393,25 +391,19 @@ export default class extends Events {
   }
 
   pinchSticker(SCALE) {
-    const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[
-      this.stickersOnCanvas.length - 1
-    ];
+    const LAST_INDEX = this.stickersOnCanvas.length - 1;
+    const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[LAST_INDEX];
 
-    const WIDTH_AFTER = ACTIVE_STICKER_OBJ.width * SCALE;
-    const WIDTH_BEFORE = ACTIVE_STICKER_OBJ.width;
+    const WIDTH = ACTIVE_STICKER_OBJ.width;
+    const HEIGHT = ACTIVE_STICKER_OBJ.height;
+    this.adjustSize(WIDTH * SCALE, HEIGHT * SCALE);
+    const WIDTH_AFTER = this.stickersOnCanvas[LAST_INDEX].width;
+    const HEIGHT_AFTER = this.stickersOnCanvas[LAST_INDEX].height;
+    const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
+    const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
 
-    const HEIGHT_AFTER = ACTIVE_STICKER_OBJ.height * SCALE;
-    const HEIGHT_BEFORE = ACTIVE_STICKER_OBJ.height;
-
-    const DIFF_WIDTH = WIDTH_AFTER - WIDTH_BEFORE;
-    const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT_BEFORE;
-
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width *= SCALE;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height *= SCALE;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x -=
-      DIFF_WIDTH / 2;
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y -=
-      DIFF_HEIGHT / 2;
+    this.stickersOnCanvas[LAST_INDEX].position.x -= DIFF_WIDTH / 2;
+    this.stickersOnCanvas[LAST_INDEX].position.y -= DIFF_HEIGHT / 2;
   }
 
   resizeSticker(offsetX, offsetY) {
@@ -448,18 +440,6 @@ export default class extends Events {
       RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
-
-    // const LAST_INDEX = this.stickersOnCanvas.length - 1;
-    // const STICKER = this.stickersOnCanvas[LAST_INDEX];
-    // const RIGHT = STICKER.width * STICKER.scale + STICKER.position.x;
-    // const BOTTOM = STICKER.height * STICKER.scale + STICKER.position.y;
-    // const WIDTH = STICKER.width * STICKER.scale + -this.diffX;
-    // const HEIGHT = STICKER.height * STICKER.scale + -this.diffY;
-    // this.adjustSize(WIDTH, HEIGHT);
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.x =
-    //   RIGHT - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width;
-    // this.stickersOnCanvas[this.stickersOnCanvas.length - 1].position.y =
-    //   BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
   resizeHandleLeftBottom(offsetX, offsetY) {
@@ -478,10 +458,6 @@ export default class extends Events {
     const WIDTH = offsetX - STICKER.position.x;
     const HEIGHT = offsetY - STICKER.position.y;
     this.adjustSize(WIDTH, HEIGHT);
-    // const LAST_INDEX = this.stickersOnCanvas.length - 1;
-    // const STICKER = this.stickersOnCanvas[LAST_INDEX];
-    // const WIDTH = STICKER.width + this.diffX;
-    // const HEIGHT = STICKER.height + this.diffY;
   }
 
   resizeHandleRightTop(offsetX, offsetY) {
@@ -521,7 +497,6 @@ export default class extends Events {
     this.stickersOnCanvas.push(newSticker);
     this.activeStickerId = this.stickerId;
     this.stickerId++;
-    // console.log(this.stickersOnCanvas);
   }
 
   renderStickers() {
