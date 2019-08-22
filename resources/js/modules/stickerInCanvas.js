@@ -54,7 +54,7 @@ export default class extends Events {
     this.aspect = 1;
 
     //メンバ変数だけど一旦定数扱いに
-    this.RANGE_OFFSET = 10; //クリック範囲のオフセット
+    this.RANGE_OFFSET = 15; //クリック範囲のオフセット
 
     //ライン上クリックの判定に必要な定数
     this.LEFT_LINE = 1;
@@ -105,7 +105,8 @@ export default class extends Events {
       });
     });
 
-    this.$removeStickerButton.addEventListener('click', () => {
+    this.$removeStickerButton.addEventListener('click', event => {
+      event.preventDefault();
       this.stickersOnCanvas.splice(this.stickersOnCanvas.length - 1, 1);
       this.renderStickers();
     });
@@ -511,7 +512,6 @@ export default class extends Events {
     // const STICKER = this.stickersOnCanvas[LAST_INDEX];
     // const WIDTH = STICKER.width + this.diffX;
     // const HEIGHT = STICKER.height + this.diffY;
-    this.adjustSizing(WIDTH, HEIGHT);
   }
 
   resizeHandleRightTop(offsetX, offsetY) {
@@ -525,21 +525,23 @@ export default class extends Events {
       BOTTOM - this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height;
   }
 
-  adjustSizing(width, height, x = 0, y = 0) {
+  adjustSize(width, height, x = 0, y = 0) {
     const LAST_INDEX = this.stickersOnCanvas.length - 1;
+    console.log(width);
 
+    const ADJUST_WIDTH = Math.max(width, this.RANGE_OFFSET * 3);
+    const ADJUST_HEIGHT = Math.max(height, this.RANGE_OFFSET * 3);
     if (width >= height) {
-      this.stickersOnCanvas[LAST_INDEX].width = width;
-      this.stickersOnCanvas[LAST_INDEX].height = width * this.aspect;
-      // this.diffY = this.diffX;
+      this.stickersOnCanvas[LAST_INDEX].width = ADJUST_WIDTH;
+      this.stickersOnCanvas[LAST_INDEX].height = ADJUST_WIDTH * this.aspect;
     } else {
-      this.stickersOnCanvas[LAST_INDEX].width = height * this.aspect;
-      this.stickersOnCanvas[LAST_INDEX].height = height;
-      // this.diffX = this.diffY;
+      this.stickersOnCanvas[LAST_INDEX].height = ADJUST_HEIGHT;
+      this.stickersOnCanvas[LAST_INDEX].width = ADJUST_HEIGHT * this.aspect;
     }
   }
 
-  handleClickStickerList(element) {
+  handleClickStickerList(element, event) {
+    event.preventDefault();
     this.addSticker(element);
     this.renderStickers();
   }
@@ -565,7 +567,7 @@ export default class extends Events {
     //スタンプの配列を描画
     for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
       //最後のスタンプ(アクティブ)のみ枠線の色とマークの大きさ変更
-      if (i === this.stickersOnCanvas.length - 1) {
+      if (i === end - 1) {
         color = 'white';
         size = 3;
       }
