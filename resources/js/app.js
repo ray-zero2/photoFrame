@@ -28,7 +28,12 @@ class App {
     });
 
     this.imageEdit.on('requestedRenderSticker', canvasData => {
-      this.originalImage = canvasData.getImageData(0, 0, 300, 300);
+      this.originalImage = canvasData.getImageData(
+        0,
+        0,
+        this.$canvas.width,
+        this.$canvas.height
+      );
       this.sticker = new Sticker(this.originalImage);
     });
   }
