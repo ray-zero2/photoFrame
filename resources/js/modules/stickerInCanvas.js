@@ -4,7 +4,6 @@ class Sticker {
     this.id = idNumber;
     this.src = `./images/sticker/sticker${stickerNum}.png`;
     this.leftTopPoint = { x: 100, y: 100 };
-    this.scale = 1.5;
     this.width = 100;
     this.height = 100;
   }
@@ -267,11 +266,9 @@ export default class extends Events {
     for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
       const STICKER_OBJ = this.stickersOnCanvas[i];
       let minPointX = STICKER_OBJ.leftTopPoint.x;
-      let maxPointX =
-        STICKER_OBJ.leftTopPoint.x + STICKER_OBJ.width * STICKER_OBJ.scale;
+      let maxPointX = STICKER_OBJ.leftTopPoint.x + STICKER_OBJ.width;
       let minPointY = STICKER_OBJ.leftTopPoint.y;
-      let maxPointY =
-        STICKER_OBJ.leftTopPoint.y + STICKER_OBJ.height * STICKER_OBJ.scale;
+      let maxPointY = STICKER_OBJ.leftTopPoint.y + STICKER_OBJ.height;
 
       //最後のスタンプ（現アクティブスタンプ）のみクリック範囲拡大
       if (i === this.stickersOnCanvas.length - 1) {
@@ -429,18 +426,17 @@ export default class extends Events {
       this.stickersOnCanvas.length - 1
     ];
 
-    const WIDTH_AFTER =
-      ACTIVE_STICKER_OBJ.width * ACTIVE_STICKER_OBJ.scale * SCALE;
-    const WIDTH_BEFORE = ACTIVE_STICKER_OBJ.width * ACTIVE_STICKER_OBJ.scale;
+    const WIDTH_AFTER = ACTIVE_STICKER_OBJ.width * SCALE;
+    const WIDTH_BEFORE = ACTIVE_STICKER_OBJ.width;
 
-    const HEIGHT_AFTER =
-      ACTIVE_STICKER_OBJ.height * ACTIVE_STICKER_OBJ.scale * SCALE;
-    const HEIGHT_BEFORE = ACTIVE_STICKER_OBJ.height * ACTIVE_STICKER_OBJ.scale;
+    const HEIGHT_AFTER = ACTIVE_STICKER_OBJ.height * SCALE;
+    const HEIGHT_BEFORE = ACTIVE_STICKER_OBJ.height;
 
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH_BEFORE;
     const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT_BEFORE;
 
-    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].scale *= SCALE;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].width *= SCALE;
+    this.stickersOnCanvas[this.stickersOnCanvas.length - 1].height *= SCALE;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.x -=
       DIFF_WIDTH / 2;
     this.stickersOnCanvas[this.stickersOnCanvas.length - 1].leftTopPoint.y -=
@@ -471,8 +467,8 @@ export default class extends Events {
   }
   resizeHandleLeftTop(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const RIGHT = STICKER.width * STICKER.scale + STICKER.leftTopPoint.x;
-    const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
+    const RIGHT = STICKER.width + STICKER.leftTopPoint.x;
+    const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSizing(WIDTH, HEIGHT);
@@ -497,7 +493,7 @@ export default class extends Events {
 
   resizeHandleLeftBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const RIGHT = STICKER.width * STICKER.scale + STICKER.leftTopPoint.x;
+    const RIGHT = STICKER.width + STICKER.leftTopPoint.x;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = offsetY - STICKER.leftTopPoint.y;
     this.adjustSizing(WIDTH, HEIGHT);
@@ -508,8 +504,8 @@ export default class extends Events {
 
   resizeHandleRightBottom(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const WIDTH = offsetX - STICKER.leftTopPoint.x * STICKER.scale;
-    const HEIGHT = offsetY - STICKER.leftTopPoint.y * STICKER.scale;
+    const WIDTH = offsetX - STICKER.leftTopPoint.x;
+    const HEIGHT = offsetY - STICKER.leftTopPoint.y;
     this.adjustSizing(WIDTH, HEIGHT);
     // const LAST_INDEX = this.stickersOnCanvas.length - 1;
     // const STICKER = this.stickersOnCanvas[LAST_INDEX];
@@ -520,7 +516,7 @@ export default class extends Events {
 
   resizeHandleRightTop(offsetX, offsetY) {
     const STICKER = this.stickersOnCanvas[this.stickersOnCanvas.length - 1];
-    const BOTTOM = STICKER.height * STICKER.scale + STICKER.leftTopPoint.y;
+    const BOTTOM = STICKER.height + STICKER.leftTopPoint.y;
     const WIDTH = offsetX - STICKER.leftTopPoint.x;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSizing(WIDTH, HEIGHT);
@@ -577,9 +573,8 @@ export default class extends Events {
       img.src = this.stickersOnCanvas[i].src;
       let x = this.stickersOnCanvas[i].leftTopPoint.x,
         y = this.stickersOnCanvas[i].leftTopPoint.y,
-        width = this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale,
-        height =
-          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale;
+        width = this.stickersOnCanvas[i].width,
+        height = this.stickersOnCanvas[i].height;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
       this.drawFrameLine(x, y, width, height, color);
@@ -621,9 +616,8 @@ export default class extends Events {
       img.src = this.stickersOnCanvas[i].src;
       let x = this.stickersOnCanvas[i].leftTopPoint.x,
         y = this.stickersOnCanvas[i].leftTopPoint.y,
-        width = this.stickersOnCanvas[i].width * this.stickersOnCanvas[i].scale,
-        height =
-          this.stickersOnCanvas[i].height * this.stickersOnCanvas[i].scale;
+        width = this.stickersOnCanvas[i].width,
+        height = this.stickersOnCanvas[i].height;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
     }
