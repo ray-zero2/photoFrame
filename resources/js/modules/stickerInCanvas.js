@@ -11,7 +11,6 @@ class Sticker {
 export default class extends Events {
   constructor(backgroundImage) {
     super();
-
     //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
@@ -113,7 +112,7 @@ export default class extends Events {
     });
 
     this.$createImageButton.addEventListener('click', () => {
-      this.renderOutputImage();
+      this.renderStickers('create');
       this.$stickerWrapper.classList.add('js-hide');
       this.$removeStickerButton.classList.add('js-hide');
       this.$createImageButton.classList.add('js-hide');
@@ -207,7 +206,6 @@ export default class extends Events {
   }
 
   doubleTouchMove(event) {
-    console.log('doubleTouchMove  Start');
     const TOUCHES_ARRAY = event.touches;
     const X1 = TOUCHES_ARRAY[0].screenX;
     const X2 = TOUCHES_ARRAY[1].screenX;
@@ -501,7 +499,7 @@ export default class extends Events {
     this.stickerId++;
   }
 
-  renderStickers() {
+  renderStickers(mode = 'default') {
     //オフスクリーンに描画
     this.offScreenContext.clearRect(
       0,
@@ -538,8 +536,10 @@ export default class extends Events {
         height = this.stickersOnCanvas[i].height;
 
       this.offScreenContext.drawImage(img, x, y, width, height);
-      this.drawFrameLine(x, y, width, height, color, magRatio);
-      this.drawCornerMark(x, y, width, height, size, magRatio);
+      if (mode === 'default') {
+        this.drawFrameLine(x, y, width, height, color, magRatio);
+        this.drawCornerMark(x, y, width, height, size, magRatio);
+      }
     }
 
     //まとめてキャンバスへ描画
@@ -574,43 +574,7 @@ export default class extends Events {
     this.offScreenContext.arc(x, y, size * ratio, 0, Math.PI * 2, false);
     this.offScreenContext.stroke();
   }
-  renderOutputImage() {
-    //オフスクリーンに描画
-    this.offScreenContext.clearRect(
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-    this.offScreenContext.drawImage(
-      this.$backImageScreen,
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-    let img = new Image();
 
-    //スタンプの配列を描画
-    for (let i = 0, end = this.stickersOnCanvas.length; i < end; i++) {
-      img.src = this.stickersOnCanvas[i].src;
-      let x = this.stickersOnCanvas[i].position.x,
-        y = this.stickersOnCanvas[i].position.y,
-        width = this.stickersOnCanvas[i].width,
-        height = this.stickersOnCanvas[i].height;
-
-      this.offScreenContext.drawImage(img, x, y, width, height);
-    }
-    //まとめてキャンバスへ描画
-    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
-    this.context.drawImage(
-      this.$offScreen,
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
-  }
   createImage() {
     let png = this.$canvas.toDataURL();
     document.querySelector('.image').src = png;
