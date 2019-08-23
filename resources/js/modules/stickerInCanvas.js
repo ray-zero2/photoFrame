@@ -222,7 +222,7 @@ export default class extends Events {
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
-    this.pinchSticker(SCALE);
+    this.pinchZoomSticker(SCALE);
     this.moveSticker();
     this.renderStickers();
     this.lastLength = CURRENT_LENGTH;
@@ -390,16 +390,16 @@ export default class extends Events {
     ].position.y += this.diffY;
   }
 
-  pinchSticker(SCALE) {
+  pinchZoomSticker(SCALE) {
     const LAST_INDEX = this.stickersOnCanvas.length - 1;
     const ACTIVE_STICKER_OBJ = this.stickersOnCanvas[LAST_INDEX];
 
     const WIDTH = ACTIVE_STICKER_OBJ.width;
     const HEIGHT = ACTIVE_STICKER_OBJ.height;
-    console.log(`first width = ${WIDTH}`);
+    // console.log(`first width = ${WIDTH}`);
     this.adjustSize(WIDTH * SCALE, HEIGHT * SCALE);
     const WIDTH_AFTER = this.stickersOnCanvas[LAST_INDEX].width;
-    console.log(`width_after = ${WIDTH_AFTER}`);
+    // console.log(`width_after = ${WIDTH_AFTER}`);
     const HEIGHT_AFTER = this.stickersOnCanvas[LAST_INDEX].height;
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
     const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
@@ -411,19 +411,19 @@ export default class extends Events {
   resizeSticker(offsetX, offsetY) {
     switch (this.clickProperty) {
       case this.LEFT_TOP_POINT:
-        console.log('left top point');
+        // console.log('left top point');
         this.resizeHandleLeftTop(offsetX, offsetY);
         break;
       case this.LEFT_BOTTOM_POINT:
-        console.log('left bottom point');
+        // console.log('left bottom point');
         this.resizeHandleLeftBottom(offsetX, offsetY);
         break;
       case this.RIGHT_BOTTOM_POINT:
-        console.log('right bottom point');
+        // console.log('right bottom point');
         this.resizeHandleRightBottom(offsetX, offsetY);
         break;
       case this.RIGHT_TOP_POINT:
-        console.log('right top point');
+        // console.log('right top point');
         this.resizeHandleRightTop(offsetX, offsetY);
         break;
       default:
