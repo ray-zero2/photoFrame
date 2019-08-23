@@ -115,15 +115,14 @@ export default class extends Events {
 
     this.$removeStickerButton.addEventListener('click', event => {
       event.preventDefault();
-      const LAST_INDEX = this.inactiveStickers.length - 1;
-      console.log(LAST_INDEX);
-      if (LAST_INDEX >= 0) {
+      const INACTIVE_ARRAY_LENGTH = this.inactiveStickers.length;
+      // console.log(LAST_INDEX);
+      if (INACTIVE_ARRAY_LENGTH > 0) {
         this.activeSticker = this.inactiveStickers.pop();
         this.setInactiveStickersOnCanvas();
         this.render();
       } else {
         this.activeSticker = null;
-        //ここの部分でスタンプが何もない状態を出力する必要があり。
         this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
         this.context.drawImage(
           this.$backImageScreen,
@@ -155,8 +154,7 @@ export default class extends Events {
   }
 
   handleMouseUp() {
-    this.isStickerTouched = false;
-    this.clickProperty = 0;
+    this.handleTouchEnd();
   }
 
   handleTouchStart(event) {
@@ -182,7 +180,8 @@ export default class extends Events {
   }
 
   handleTouchEnd() {
-    this.handleMouseUp();
+    this.isStickerTouched = false;
+    this.clickProperty = 0;
     this.isTouched = false;
     this.isDoubleTouched = false;
   }
@@ -194,9 +193,8 @@ export default class extends Events {
       event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
     this.lastScreenX = START_X;
     this.lastScreenY = START_Y;
-    this.isStickerTouched = this.judgeWhereClickOnTheSticker(event);
+    this.judgeWhereClickOnTheSticker(event);
     if (this.isStickerTouched) {
-      // this.decideOperatedSticker(event);
       this.render();
     }
   }
@@ -255,7 +253,6 @@ export default class extends Events {
   /**
    * スタンプをクリックしているかを調べ、アクティブなスタンプをクリックしていればそのクリック箇所も調べる
    * @param {object} event クリックイベント
-   * @return {boolean} onStickerFlag いずれかのスタンプ上をクリックしていればtrueを返す
    */
   judgeWhereClickOnTheSticker(event) {
     console.log(event);
@@ -272,7 +269,6 @@ export default class extends Events {
     const ACTIVE_STICKER = this.activeSticker;
     const RANGE = this.RANGE_OFFSET;
 
-    let onStickerFlag = false;
     let minPointX = 0;
     let maxPointX = 0;
     let minPointY = 0;
@@ -298,8 +294,8 @@ export default class extends Events {
         minPointY,
         maxPointY
       );
-      onStickerFlag = true;
-      return onStickerFlag;
+      this.isStickerTouched = true;
+      return;
     } else {
       //judge inactive stickers
       //上のレイヤのスタンプから調べるため配列を逆順に捜査する
@@ -316,14 +312,14 @@ export default class extends Events {
           minPointY <= OFFSET_Y &&
           OFFSET_Y <= maxPointY
         ) {
-          this.decideOperatedSticker(index);
+          this.activeTouchedSticker(index);
           this.setInactiveStickersOnCanvas();
-          onStickerFlag = true;
-          return onStickerFlag;
+          this.isStickerTouched = true;
+          return;
         }
       }
     }
-    return onStickerFlag;
+    return;
   }
 
   /**
@@ -403,11 +399,10 @@ export default class extends Events {
   }
 
   /**
-   * クリックされた非アクティブなスタンプをthis.activeStickerに代入し、
-   * もともとアクティブだったものを非アクティブ配列this.inactiveStickersの最後に格納する
+   * クリックされた非アクティブなスタンプを配列から抜き出しthis.activeStickerに代入
    * @param {num} INDEX クリックされたスタンプの配列index
    */
-  decideOperatedSticker(INDEX) {
+  activeTouchedSticker(INDEX) {
     //アクティブなスタンプを配列の最後に移動
     const ACTIVE_STICKER_OBJ = this.inactiveStickers[INDEX];
     this.inactiveStickers.splice(INDEX, 1);
@@ -442,25 +437,49 @@ export default class extends Events {
     switch (this.clickProperty) {
       case this.LEFT_TOP_POINT:
         // console.log('left top point');
-        this.resizeHandleLeftTop(offsetX, offsetY);
+        this.handleLeftTop(offsetX, offsetY);
         break;
+
       case this.LEFT_BOTTOM_POINT:
         // console.log('left bottom point');
-        this.resizeHandleLeftBottom(offsetX, offsetY);
+        this.handleLeftBottom(offsetX, offsetY);
         break;
+
       case this.RIGHT_BOTTOM_POINT:
         // console.log('right bottom point');
-        this.resizeHandleRightBottom(offsetX, offsetY);
+        this.handleRightBottom(offsetX, offsetY);
         break;
+
       case this.RIGHT_TOP_POINT:
         // console.log('right top point');
-        this.resizeHandleRightTop(offsetX, offsetY);
+        this.handleRightTop(offsetX, offsetY);
         break;
+
+      case this.LEFT_LINE:
+        // console.log('left top point');
+        this.handleLeft(offsetX);
+        break;
+
+      case this.BOTTOM_LINE:
+        // console.log('left bottom point');
+        this.handleBottom(offsetY);
+        break;
+
+      case this.RIGHT_LINE:
+        // console.log('right bottom point');
+        this.handleRight(offsetX);
+        break;
+
+      case this.TOP_LINE:
+        // console.log('right top point');
+        this.handleTop(offsetY);
+        break;
+
       default:
         break;
     }
   }
-  resizeHandleLeftTop(offsetX, offsetY) {
+  handleLeftTop(offsetX, offsetY) {
     const STICKER = this.activeSticker;
     const RIGHT = STICKER.width + STICKER.positionX;
     const BOTTOM = STICKER.height + STICKER.positionY;
@@ -472,7 +491,7 @@ export default class extends Events {
     this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
-  resizeHandleLeftBottom(offsetX, offsetY) {
+  handleLeftBottom(offsetX, offsetY) {
     const STICKER = this.activeSticker;
     const RIGHT = STICKER.width + STICKER.positionX;
     const WIDTH = RIGHT - offsetX;
@@ -482,20 +501,67 @@ export default class extends Events {
     this.activeSticker.positionX = RIGHT - this.activeSticker.width;
   }
 
-  resizeHandleRightBottom(offsetX, offsetY) {
+  handleRightBottom(offsetX, offsetY) {
     const STICKER = this.activeSticker;
     const WIDTH = offsetX - STICKER.positionX;
     const HEIGHT = offsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
   }
 
-  resizeHandleRightTop(offsetX, offsetY) {
+  handleRightTop(offsetX, offsetY) {
     const STICKER = this.activeSticker;
     const BOTTOM = STICKER.height + STICKER.positionY;
     const WIDTH = offsetX - STICKER.positionX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
 
+    this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
+  }
+
+  handleLeft(offsetX) {
+    const STICKER = this.activeSticker;
+    const RIGHT = STICKER.width + STICKER.positionX;
+    const WIDTH = RIGHT - offsetX;
+    const HEIGHT = STICKER.height;
+    this.adjustSize(WIDTH, 0);
+
+    const HEIGHT_AFTER = this.activeSticker.height;
+    const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
+    this.activeSticker.positionX = RIGHT - this.activeSticker.width;
+    this.activeSticker.positionY -= DIFF_HEIGHT / 2;
+  }
+
+  handleBottom(offsetY) {
+    const STICKER = this.activeSticker;
+    const WIDTH = STICKER.width;
+    const HEIGHT = offsetY - STICKER.positionY;
+    this.adjustSize(0, HEIGHT);
+
+    const WIDTH_AFTER = this.activeSticker.width;
+    const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
+    this.activeSticker.positionX -= DIFF_WIDTH / 2;
+  }
+
+  handleRight(offsetX) {
+    const STICKER = this.activeSticker;
+    const WIDTH = offsetX - STICKER.positionX;
+    const HEIGHT = STICKER.height;
+    this.adjustSize(WIDTH, 0);
+    const HEIGHT_AFTER = this.activeSticker.height;
+    const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
+    this.activeSticker.positionY -= DIFF_HEIGHT / 2;
+  }
+
+  handleTop(offsetY) {
+    const STICKER = this.activeSticker;
+    const BOTTOM = STICKER.height + STICKER.positionY;
+    const WIDTH = STICKER.width;
+    const HEIGHT = BOTTOM - offsetY;
+    this.adjustSize(0, HEIGHT);
+
+    const WIDTH_AFTER = this.activeSticker.width;
+    const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
+    this.activeSticker.positionX -= DIFF_WIDTH / 2;
     this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
@@ -504,7 +570,7 @@ export default class extends Events {
     const ADJUST_HEIGHT = Math.max(height, this.RANGE_OFFSET * 3);
     if (width >= height) {
       this.activeSticker.width = ADJUST_WIDTH;
-      this.activeSticker.height = ADJUST_WIDTH * this.aspect;
+      this.activeSticker.height = ADJUST_WIDTH / this.aspect;
     } else {
       this.activeSticker.height = ADJUST_HEIGHT;
       this.activeSticker.width = ADJUST_HEIGHT * this.aspect;
@@ -606,6 +672,10 @@ export default class extends Events {
     }
   }
 
+  /**
+   * 背景の動かない非アクティブスタンプ群をオフスクリーンにセットする
+   * @param {str} mode 何か文字をいれると最後の決定時の画像生成モードになる
+   */
   setInactiveStickersOnCanvas(mode = 'default') {
     this.inactiveContext.clearRect(
       0,
