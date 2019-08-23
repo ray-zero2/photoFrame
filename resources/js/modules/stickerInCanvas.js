@@ -1,11 +1,11 @@
 import Events from 'events';
 class Sticker {
-  constructor(stickerNum, idNumber) {
-    this.id = idNumber;
+  constructor(stickerNum) {
     this.src = `./images/sticker/sticker${stickerNum}.png`;
     this.width = 300;
     this.height = 300;
-    this.position = { x: 300, y: 300 };
+    this.positionX = 300;
+    this.positionY = 300;
   }
 }
 export default class extends Events {
@@ -54,17 +54,16 @@ export default class extends Events {
     this.lastScreenX = 0;
     this.lastScreenY = 0;
     this.isStickerTouched = false;
-    this.stickerId = 0; //スタンプ追加時に付与していくid番号
     this.activeSticker = null; //現在アクティブ状態のスタンプ
-    this.activeStickerId = 0;
-    this.stickersOnCanvas = []; //キャンバス上に存在するスタンプの配列
-    this.inactiveStickers = [];
-    this.aspect = 1;
+    this.inactiveStickers = []; //非アクティブ状態のスタンプを格納する配列
+    this.aspect = 1; //スタンプのアスペクト比
 
     //メンバ変数だけど一旦定数扱いに
-    this.RANGE_OFFSET =
-      15 * Math.max(this.magnificationRatioX, this.magnificationRatioY); //クリック範囲のオフセット
 
+    //クリック範囲のオフセット
+    const OFFSET = /iPhone|iPad|Android/.test(navigator.userAgent) ? 16 : 8;
+    this.RANGE_OFFSET =
+      OFFSET * Math.max(this.magnificationRatioX, this.magnificationRatioY);
     //ライン上クリックの判定に必要な定数
     this.LEFT_LINE = 1;
     this.BOTTOM_LINE = 2;
@@ -75,7 +74,7 @@ export default class extends Events {
     this.RIGHT_BOTTOM_POINT = this.RIGHT_LINE + this.BOTTOM_LINE;
     this.RIGHT_TOP_POINT = this.RIGHT_LINE + this.TOP_LINE;
 
-    this.clickProperty = 0;
+    this.clickProperty = 0; //スタンプのどの辺をクリックしたかを保持
 
     this.$stickerWrapper.classList.remove('js-hide');
     this.$removeStickerButton.classList.remove('js-hide');
@@ -120,7 +119,7 @@ export default class extends Events {
       console.log(LAST_INDEX);
       if (LAST_INDEX >= 0) {
         this.activeSticker = this.inactiveStickers.pop();
-        this.setInactiveStickers();
+        this.setInactiveStickersOnCanvas();
         this.render();
       } else {
         this.activeSticker = null;
@@ -137,7 +136,7 @@ export default class extends Events {
     });
 
     this.$createImageButton.addEventListener('click', () => {
-      this.setInactiveStickers('create');
+      this.setInactiveStickersOnCanvas('create');
       this.render('create');
       this.createImage();
       this.$stickerWrapper.classList.add('js-hide');
@@ -280,10 +279,10 @@ export default class extends Events {
     let maxPointY = 0;
 
     //judge active sticker
-    minPointX = ACTIVE_STICKER.position.x - RANGE;
-    maxPointX = ACTIVE_STICKER.position.x + ACTIVE_STICKER.width + RANGE;
-    minPointY = ACTIVE_STICKER.position.y - RANGE;
-    maxPointY = ACTIVE_STICKER.position.y + ACTIVE_STICKER.height + RANGE;
+    minPointX = ACTIVE_STICKER.positionX - RANGE;
+    maxPointX = ACTIVE_STICKER.positionX + ACTIVE_STICKER.width + RANGE;
+    minPointY = ACTIVE_STICKER.positionY - RANGE;
+    maxPointY = ACTIVE_STICKER.positionY + ACTIVE_STICKER.height + RANGE;
     if (
       minPointX <= OFFSET_X &&
       OFFSET_X <= maxPointX &&
@@ -303,13 +302,14 @@ export default class extends Events {
       return onStickerFlag;
     } else {
       //judge inactive stickers
-      //reverse loop
-      for (let index = this.inactiveStickers.length - 1; index >= 0; index--) {
+      //上のレイヤのスタンプから調べるため配列を逆順に捜査する
+      const LAST_INDEX = this.inactiveStickers.length - 1;
+      for (let index = LAST_INDEX; index >= 0; index--) {
         const STICKER_OBJ = this.inactiveStickers[index];
-        minPointX = STICKER_OBJ.position.x;
-        maxPointX = STICKER_OBJ.position.x + STICKER_OBJ.width;
-        minPointY = STICKER_OBJ.position.y;
-        maxPointY = STICKER_OBJ.position.y + STICKER_OBJ.height;
+        minPointX = STICKER_OBJ.positionX;
+        maxPointX = STICKER_OBJ.positionX + STICKER_OBJ.width;
+        minPointY = STICKER_OBJ.positionY;
+        maxPointY = STICKER_OBJ.positionY + STICKER_OBJ.height;
         if (
           minPointX <= OFFSET_X &&
           OFFSET_X <= maxPointX &&
@@ -317,7 +317,7 @@ export default class extends Events {
           OFFSET_Y <= maxPointY
         ) {
           this.decideOperatedSticker(index);
-          this.setInactiveStickers();
+          this.setInactiveStickersOnCanvas();
           onStickerFlag = true;
           return onStickerFlag;
         }
@@ -402,6 +402,11 @@ export default class extends Events {
     }
   }
 
+  /**
+   * クリックされた非アクティブなスタンプをthis.activeStickerに代入し、
+   * もともとアクティブだったものを非アクティブ配列this.inactiveStickersの最後に格納する
+   * @param {num} INDEX クリックされたスタンプの配列index
+   */
   decideOperatedSticker(INDEX) {
     //アクティブなスタンプを配列の最後に移動
     const ACTIVE_STICKER_OBJ = this.inactiveStickers[INDEX];
@@ -412,8 +417,8 @@ export default class extends Events {
 
   moveSticker() {
     const STICKER = this.activeSticker;
-    STICKER.position.x += this.diffX;
-    STICKER.position.y += this.diffY;
+    STICKER.positionX += this.diffX;
+    STICKER.positionY += this.diffY;
   }
 
   pinchZoomSticker(SCALE) {
@@ -429,8 +434,8 @@ export default class extends Events {
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
     const DIFF_HEIGHT = HEIGHT_AFTER - HEIGHT;
 
-    this.activeSticker.position.x -= DIFF_WIDTH / 2;
-    this.activeSticker.position.y -= DIFF_HEIGHT / 2;
+    this.activeSticker.positionX -= DIFF_WIDTH / 2;
+    this.activeSticker.positionY -= DIFF_HEIGHT / 2;
   }
 
   resizeSticker(offsetX, offsetY) {
@@ -457,41 +462,41 @@ export default class extends Events {
   }
   resizeHandleLeftTop(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const RIGHT = STICKER.width + STICKER.position.x;
-    const BOTTOM = STICKER.height + STICKER.position.y;
+    const RIGHT = STICKER.width + STICKER.positionX;
+    const BOTTOM = STICKER.height + STICKER.positionY;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.activeSticker.position.x = RIGHT - this.activeSticker.width;
-    this.activeSticker.position.y = BOTTOM - this.activeSticker.height;
+    this.activeSticker.positionX = RIGHT - this.activeSticker.width;
+    this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
   resizeHandleLeftBottom(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const RIGHT = STICKER.width + STICKER.position.x;
+    const RIGHT = STICKER.width + STICKER.positionX;
     const WIDTH = RIGHT - offsetX;
-    const HEIGHT = offsetY - STICKER.position.y;
+    const HEIGHT = offsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.activeSticker.position.x = RIGHT - this.activeSticker.width;
+    this.activeSticker.positionX = RIGHT - this.activeSticker.width;
   }
 
   resizeHandleRightBottom(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const WIDTH = offsetX - STICKER.position.x;
-    const HEIGHT = offsetY - STICKER.position.y;
+    const WIDTH = offsetX - STICKER.positionX;
+    const HEIGHT = offsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
   }
 
   resizeHandleRightTop(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const BOTTOM = STICKER.height + STICKER.position.y;
-    const WIDTH = offsetX - STICKER.position.x;
+    const BOTTOM = STICKER.height + STICKER.positionY;
+    const WIDTH = offsetX - STICKER.positionX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
 
-    this.activeSticker.position.y = BOTTOM - this.activeSticker.height;
+    this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
   adjustSize(width, height) {
@@ -513,15 +518,14 @@ export default class extends Events {
   }
 
   addSticker(element) {
-    const NEW_STICKER = new Sticker(element.dataset.stickerNum, this.stickerId);
+    const NEW_STICKER = new Sticker(element.dataset.stickerNum);
     const INACTIVE_ARRAY_LENGTH = this.inactiveStickers.length;
     console.log(`INACTIVE_ARRAY_LENGTH = ${INACTIVE_ARRAY_LENGTH}`);
     if (this.activeSticker !== null) {
       this.inactiveStickers.push(this.activeSticker);
-      this.setInactiveStickers();
+      this.setInactiveStickersOnCanvas();
     }
     this.activeSticker = NEW_STICKER;
-    this.stickerId++;
   }
 
   render(mode = 'default') {
@@ -548,6 +552,19 @@ export default class extends Events {
       this.$canvas.height
     );
 
+    this.drawActiveStickerOnOffscreen(mode);
+    //まとめてキャンバスへ描画
+    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
+    this.context.drawImage(
+      this.$offScreen,
+      0,
+      0,
+      this.$canvas.width,
+      this.$canvas.height
+    );
+  }
+
+  drawActiveStickerOnOffscreen(mode = 'default') {
     //枠線の色とマークの大きさ
     const MAG_RATIO = Math.max(
       this.magnificationRatioX,
@@ -560,8 +577,8 @@ export default class extends Events {
     let img = new Image();
     img.src = STICKER.src;
 
-    const X = STICKER.position.x,
-      Y = STICKER.position.y,
+    const X = STICKER.positionX,
+      Y = STICKER.positionY,
       WIDTH = STICKER.width,
       HEIGHT = STICKER.height;
 
@@ -587,19 +604,9 @@ export default class extends Events {
         MARK_SIZE
       );
     }
-
-    //まとめてキャンバスへ描画
-    this.context.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
-    this.context.drawImage(
-      this.$offScreen,
-      0,
-      0,
-      this.$canvas.width,
-      this.$canvas.height
-    );
   }
 
-  setInactiveStickers(mode = 'default') {
+  setInactiveStickersOnCanvas(mode = 'default') {
     this.inactiveContext.clearRect(
       0,
       0,
@@ -620,8 +627,8 @@ export default class extends Events {
     //スタンプの配列を描画
     INACTIVE_STICKERS.forEach(sticker => {
       img.src = sticker.src;
-      let x = sticker.position.x,
-        y = sticker.position.y,
+      let x = sticker.positionX,
+        y = sticker.positionY,
         width = sticker.width,
         height = sticker.height;
 
