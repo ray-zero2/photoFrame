@@ -1,5 +1,5 @@
 # photoFrame
-の勉強用に制作(デザインは適当)
+canvasの勉強用に制作(デザインは適当)
 macのchoromeとiPhoneでの動作確認のみ
 
 ## 概要
