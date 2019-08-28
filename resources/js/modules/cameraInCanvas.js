@@ -38,7 +38,7 @@ export default class extends Events {
 
   stopCamera() {
     const TRACKS = this.$video.srcObject.getTracks();
-    TRACKS.forEach(function (track) {
+    TRACKS.forEach(function(track) {
       track.stop();
     });
     this.$video.srcObject = null;

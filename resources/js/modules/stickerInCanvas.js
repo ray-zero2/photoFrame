@@ -45,9 +45,18 @@ export default class extends Events {
     this.activeSticker = null; //現在アクティブ状態のスタンプ
     this.inactiveStickers = []; //非アクティブ状態のスタンプを格納する配列
     this.aspect = 1; //スタンプのアスペクト比
+    this.clickPointProperty = 0; //スタンプのどの辺をクリックしたかを保持
+    //現在処理をするスタンプの各辺の1次元座標
+    this.left = 0;
+    this.right = 0;
+    this.top = 0;
+    this.bottom = 0;
+
+    this.img = new Image(); //画像描画のためのimage element
+    this.mode = 'default'; //キャンバス投影時にスタンプ周りに枠線をつけるかどうかのモード
 
     //メンバ変数だけど一旦定数扱いに
-    //クリック範囲のオフセット
+    //クリック範囲のオフセット（指でタップする場合はオフセットを広げる）
     const OFFSET = /iPhone|iPad|Android/.test(navigator.userAgent) ? 16 : 8;
     this.RANGE_OFFSET =
       OFFSET * Math.max(this.magnificationX, this.magnificationY);
@@ -60,8 +69,6 @@ export default class extends Events {
     this.LEFT_BOTTOM_POINT = this.LEFT_LINE + this.BOTTOM_LINE;
     this.RIGHT_BOTTOM_POINT = this.RIGHT_LINE + this.BOTTOM_LINE;
     this.RIGHT_TOP_POINT = this.RIGHT_LINE + this.TOP_LINE;
-
-    this.clickProperty = 0; //スタンプのどの辺をクリックしたかを保持
 
     this.$stickerWrapper.classList.remove('js-hide');
     this.$removeStickerButton.classList.remove('js-hide');
@@ -116,8 +123,9 @@ export default class extends Events {
     });
 
     this.$createImageButton.addEventListener('click', () => {
-      this.setBackGroundOffscreen('create');
-      this.render('create');
+      this.mode = 'create';
+      this.setBackGroundOffscreen();
+      this.render();
       this.createImage();
       this.$stickerWrapper.classList.add('js-hide');
       this.$removeStickerButton.classList.add('js-hide');
@@ -162,22 +170,39 @@ export default class extends Events {
 
   handleTouchEnd() {
     this.isStickerTouched = false;
-    this.clickProperty = 0;
+    this.clickPointProperty = 0;
     this.isTouched = false;
     this.isDoubleTouched = false;
   }
 
   singleTouchStart(event) {
+    const RECT = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      (event.type === 'touchstart'
+        ? event.touches[0].clientX - window.pageXOffset - RECT.left
+        : event.offsetX) * this.magnificationX;
+    const OFFSET_Y =
+      (event.type === 'touchstart'
+        ? event.touches[0].clientY - window.pageYOffset - RECT.top
+        : event.offsetY) * this.magnificationY;
     const START_X =
       event.type === 'touchstart' ? event.touches[0].screenX : event.screenX;
     const START_Y =
       event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
     this.lastScreenX = START_X;
     this.lastScreenY = START_Y;
-    this.judgeWhereClickOnTheSticker(event);
-    if (this.isStickerTouched) {
-      this.render();
+
+    const TOUCHED_STICKER = this.getClickedStickerProperty(OFFSET_X, OFFSET_Y);
+    if (this.isStickerTouched === false) return;
+    if (TOUCHED_STICKER.type === 'active') {
+      //拡大縮小を行うために各辺がクリックされたかも調べる
+      this.judgeClickOnTheLine(OFFSET_X, OFFSET_Y);
+    } else if (TOUCHED_STICKER.type === 'inactive') {
+      //クリックされたスタンプをアクティブにして背景の再描画
+      this.activateTouchedSticker(TOUCHED_STICKER.index);
+      this.setBackGroundOffscreen();
     }
+    this.render();
   }
 
   singleTouchMove(event) {
@@ -190,7 +215,6 @@ export default class extends Events {
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
-
     this.operateSticker(event);
     this.render();
     this.lastScreenX = CURRENT_X;
@@ -231,96 +255,90 @@ export default class extends Events {
     this.lastScreenX = CURRENT_X;
     this.lastScreenY = CURRENT_Y;
   }
-  /**
-   * クリック箇所にあるスタンプがアクティブか非アクティブかを調べ、それぞれに対応した処理を行う。
-   * アクティブの場合：クリック箇所の判定（どの辺上をクリックしたか）
-   * 非アクティブの場合：アクティブにし、元アクティブスタンプを非アクティブ配列に入れる
-   * @param {object} event クリックイベント
-   */
-  judgeWhereClickOnTheSticker(event) {
-    console.log(event);
-    const RECT = event.target.getBoundingClientRect();
-    const OFFSET_X =
-      (event.type === 'touchstart'
-        ? event.touches[0].clientX - window.pageXOffset - RECT.left
-        : event.offsetX) * this.magnificationX;
-    const OFFSET_Y =
-      (event.type === 'touchstart'
-        ? event.touches[0].clientY - window.pageYOffset - RECT.top
-        : event.offsetY) * this.magnificationY;
 
+  /**
+   * クリックした位置にスタンプがあればその情報を返す
+   * @param {number} OFFSET_X クリック位置のoffset X
+   * @param {number} OFFSET_Y クリック位置のoffset Y
+   * @return {object} クリックされたスタンプの種類とインデックス番号
+   */
+  getClickedStickerProperty(OFFSET_X, OFFSET_Y) {
     const ACTIVE_STICKER = this.activeSticker;
     const RANGE = this.RANGE_OFFSET;
-
-    let left = 0;
-    let right = 0;
-    let top = 0;
-    let bottom = 0;
-
     //judge active sticker
-    left = ACTIVE_STICKER.positionX;
-    right = ACTIVE_STICKER.positionX + ACTIVE_STICKER.width;
-    top = ACTIVE_STICKER.positionY;
-    bottom = ACTIVE_STICKER.positionY + ACTIVE_STICKER.height;
-    //range分クリック可能範囲を広げる
-    if (
-      left - RANGE <= OFFSET_X &&
-      OFFSET_X <= right + RANGE &&
-      top - RANGE <= OFFSET_Y &&
-      OFFSET_Y <= bottom + RANGE
-    ) {
-      //アクティブスタンプのクリック箇所も調べる
-      this.judgeClickOnTheLine(OFFSET_X, OFFSET_Y, left, right, top, bottom);
+    this.setLinePositions(ACTIVE_STICKER);
+    if (this.judgeStickerClicked(OFFSET_X, OFFSET_Y, RANGE)) {
       this.isStickerTouched = true;
-      return;
+      const STICKER_PROPERTY = {
+        type: 'active',
+        index: null
+      };
+      return STICKER_PROPERTY;
     } else {
       //judge inactive stickers
       const LAST_INDEX = this.inactiveStickers.length - 1;
       //上のレイヤのスタンプから調べるため配列を逆順に捜査する
       for (let index = LAST_INDEX; index >= 0; index--) {
-        const STICKER_OBJ = this.inactiveStickers[index];
-        left = STICKER_OBJ.positionX;
-        right = STICKER_OBJ.positionX + STICKER_OBJ.width;
-        top = STICKER_OBJ.positionY;
-        bottom = STICKER_OBJ.positionY + STICKER_OBJ.height;
-        if (
-          left <= OFFSET_X &&
-          OFFSET_X <= right &&
-          top <= OFFSET_Y &&
-          OFFSET_Y <= bottom
-        ) {
-          this.activateTouchedSticker(index);
-          this.setBackGroundOffscreen();
+        const INACTIVE_STICKER = this.inactiveStickers[index];
+        this.setLinePositions(INACTIVE_STICKER);
+        if (this.judgeStickerClicked(OFFSET_X, OFFSET_Y)) {
           this.isStickerTouched = true;
-          return;
+          const STICKER_PROPERTY = {
+            type: 'inactive',
+            index: index
+          };
+          return STICKER_PROPERTY;
         }
       }
     }
-    return;
+    return null;
+  }
+
+  /**
+   * 引数に渡されたスタンプのそれぞれの辺の1次元座標をメンバ変数にセットする
+   * @param {object} STICKER
+   */
+  setLinePositions(STICKER) {
+    this.left = STICKER.positionX;
+    this.right = STICKER.positionX + STICKER.width;
+    this.top = STICKER.positionY;
+    this.bottom = STICKER.positionY + STICKER.height;
+  }
+
+  /**
+   * スタンプの矩形内をクリックしていればtrueを返す
+   * @param {number} OFFSET_X
+   * @param {number} OFFSET_Y
+   * @param {number} RANGE クリック範囲のオフセット
+   * @return {boolean} スタンプをクリックしているかどうか
+   */
+  judgeStickerClicked(OFFSET_X, OFFSET_Y, RANGE = 0) {
+    return (
+      this.left - RANGE <= OFFSET_X &&
+      OFFSET_X <= this.right + RANGE &&
+      this.top - RANGE <= OFFSET_Y &&
+      OFFSET_Y <= this.bottom + RANGE
+    );
   }
 
   /**
    * アクティブなスタンプのライン上がクリックされたかどうかを調べ、そのクリック箇所を割り出す
-   * @param {object} mouseDownEvent マウスダウンイベント
-   * @param {number} left 枠線のx最小値
-   * @param {number} right 枠線のx最大値
-   * @param {number} top 枠線のy最小値
-   * @param {number} bottom 枠線のy最大値
    */
-  judgeClickOnTheLine(offsetX, offsetY, left, right, top, bottom) {
-    if (Math.abs(offsetX - left) <= this.RANGE_OFFSET) {
-      this.clickProperty += this.LEFT_LINE;
+  judgeClickOnTheLine(offsetX, offsetY) {
+    if (Math.abs(offsetX - this.left) <= this.RANGE_OFFSET) {
+      this.clickPointProperty += this.LEFT_LINE;
     }
-    if (Math.abs(offsetX - right) <= this.RANGE_OFFSET) {
-      this.clickProperty += this.RIGHT_LINE;
+    if (Math.abs(offsetX - this.right) <= this.RANGE_OFFSET) {
+      this.clickPointProperty += this.RIGHT_LINE;
     }
-    if (Math.abs(offsetY - bottom) <= this.RANGE_OFFSET) {
-      this.clickProperty += this.BOTTOM_LINE;
+    if (Math.abs(offsetY - this.bottom) <= this.RANGE_OFFSET) {
+      this.clickPointProperty += this.BOTTOM_LINE;
     }
-    if (Math.abs(offsetY - top) <= this.RANGE_OFFSET) {
-      this.clickProperty += this.TOP_LINE;
+    if (Math.abs(offsetY - this.top) <= this.RANGE_OFFSET) {
+      this.clickPointProperty += this.TOP_LINE;
     }
   }
+
   /**
    * ステッカーのクリックした箇所に対応する処理を実行
    */
@@ -335,7 +353,7 @@ export default class extends Events {
         ? event.touches[0].clientY - window.pageYOffset - RECT.top
         : event.offsetY) * this.magnificationY;
 
-    if (this.clickProperty === 0) {
+    if (this.clickPointProperty === 0) {
       this.moveSticker();
     } else {
       this.resizeSticker(OFFSET_X, OFFSET_Y);
@@ -374,7 +392,7 @@ export default class extends Events {
   }
 
   resizeSticker(offsetX, offsetY) {
-    switch (this.clickProperty) {
+    switch (this.clickPointProperty) {
       case this.LEFT_TOP_POINT:
         this.handleLeftTop(offsetX, offsetY);
         break;
@@ -413,9 +431,9 @@ export default class extends Events {
   }
 
   handleLeftTop(offsetX, offsetY) {
-    const STICKER = this.activeSticker;
-    const RIGHT = STICKER.width + STICKER.positionX;
-    const BOTTOM = STICKER.height + STICKER.positionY;
+    // const STICKER = this.activeSticker;
+    const RIGHT = this.right;
+    const BOTTOM = this.bottom;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
@@ -425,7 +443,7 @@ export default class extends Events {
 
   handleLeftBottom(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const RIGHT = STICKER.width + STICKER.positionX;
+    const RIGHT = this.right;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = offsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
@@ -441,7 +459,7 @@ export default class extends Events {
 
   handleRightTop(offsetX, offsetY) {
     const STICKER = this.activeSticker;
-    const BOTTOM = STICKER.height + STICKER.positionY;
+    const BOTTOM = this.bottom;
     const WIDTH = offsetX - STICKER.positionX;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(WIDTH, HEIGHT);
@@ -450,7 +468,7 @@ export default class extends Events {
 
   handleLeft(offsetX) {
     const STICKER = this.activeSticker;
-    const RIGHT = STICKER.width + STICKER.positionX;
+    const RIGHT = this.right;
     const WIDTH = RIGHT - offsetX;
     const HEIGHT = STICKER.height;
     this.adjustSize(WIDTH, 0);
@@ -482,7 +500,7 @@ export default class extends Events {
 
   handleTop(offsetY) {
     const STICKER = this.activeSticker;
-    const BOTTOM = STICKER.height + STICKER.positionY;
+    const BOTTOM = this.bottom;
     const WIDTH = STICKER.width;
     const HEIGHT = BOTTOM - offsetY;
     this.adjustSize(0, HEIGHT);
@@ -517,6 +535,9 @@ export default class extends Events {
     this.render();
   }
 
+  /**
+   * 一覧から選ばれたスタンプを画面に描画する
+   */
   addSticker(element) {
     const NEW_STICKER = new Sticker(element.dataset.stickerNum);
     if (this.activeSticker !== null) {
@@ -528,81 +549,58 @@ export default class extends Events {
     this.activeSticker = NEW_STICKER;
   }
 
-  render(mode = 'default') {
+  render() {
     const WIDTH = this.$canvas.width;
     const HEIGHT = this.$canvas.height;
     //オフスクリーンに描画
     this.offScreenContext.clearRect(0, 0, WIDTH, HEIGHT);
     this.offScreenContext.drawImage(this.$bgOffscreen, 0, 0, WIDTH, HEIGHT);
-    this.drawActiveSticker(mode);
+    this.drawActiveSticker();
     //まとめてキャンバスへ描画
     this.context.clearRect(0, 0, WIDTH, HEIGHT);
     this.context.drawImage(this.$offScreen, 0, 0, WIDTH, HEIGHT);
   }
 
-  drawActiveSticker(mode = 'default') {
-    //枠線の色とマークの大きさ
-    const OFF_CONTEXT = this.offScreenContext;
+  drawActiveSticker() {
     const MAGNIFICATION = Math.max(this.magnificationX, this.magnificationY);
     const COLOR = 'white';
     const MARK_SIZE = 3 * MAGNIFICATION;
     const LINE_SIZE = 1 * MAGNIFICATION;
     const ACTIVE_STICKER = this.activeSticker;
-    let img = new Image();
-
-    this.drawStickerOnTarget(
-      OFF_CONTEXT,
-      ACTIVE_STICKER,
-      img,
-      mode,
-      COLOR,
-      LINE_SIZE,
-      MARK_SIZE
-    );
+    const TARGET = this.offScreenContext;
+    this.drawSticker(TARGET, ACTIVE_STICKER, COLOR, LINE_SIZE, MARK_SIZE);
   }
 
   /**
-   * もともとの背景画像と動かない非アクティブスタンプ群を専用オフスクリーンにセットする
+   * もともとの背景画像と動かない非アクティブスタンプ群を予め背景用オフスクリーンにセットする
    * @param {strings} mode 何か文字をいれると最後の決定時の画像生成モードになる
    */
-  setBackGroundOffscreen(mode = 'default') {
-    const BG_OFF_CONTEXT = this.bgOffscreenContext;
+  setBackGroundOffscreen() {
     const MAGNIFICATION = Math.max(this.magnificationX, this.magnificationY);
-    //枠線の色とマークの大きさ
     const COLOR = 'grey';
     const MARK_SIZE = 2 * MAGNIFICATION;
     const LINE_SIZE = 1 * MAGNIFICATION;
     const INACTIVE_STICKERS = this.inactiveStickers;
+    const TARGET = this.bgOffscreenContext;
 
-    BG_OFF_CONTEXT.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
-    BG_OFF_CONTEXT.putImageData(this.backgroundImage, 0, 0);
-
-    let img = new Image();
+    TARGET.clearRect(0, 0, this.$canvas.width, this.$canvas.height);
+    TARGET.putImageData(this.backgroundImage, 0, 0);
     //スタンプの配列を描画
     INACTIVE_STICKERS.forEach(inactiveSticker => {
-      this.drawStickerOnTarget(
-        BG_OFF_CONTEXT,
-        inactiveSticker,
-        img,
-        mode,
-        COLOR,
-        LINE_SIZE,
-        MARK_SIZE
-      );
+      this.drawSticker(TARGET, inactiveSticker, COLOR, LINE_SIZE, MARK_SIZE);
     });
   }
 
-  drawStickerOnTarget(TARGET, STICKER, img, mode, COLOR, LINE_SIZE, MARK_SIZE) {
-    img.src = STICKER.src;
-    let x = STICKER.positionX,
-      y = STICKER.positionY,
-      width = STICKER.width,
-      height = STICKER.height;
-
-    TARGET.drawImage(img, x, y, width, height);
-    if (mode === 'default') {
-      this.drawFrameLine(TARGET, x, y, width, height, COLOR, LINE_SIZE);
-      this.drawCornerMark(TARGET, x, y, width, height, LINE_SIZE, MARK_SIZE);
+  drawSticker(TARGET, STICKER, COLOR, LINE_SIZE, MARK_SIZE) {
+    const X = STICKER.positionX;
+    const Y = STICKER.positionY;
+    const WIDTH = STICKER.width;
+    const HEIGHT = STICKER.height;
+    this.img.src = STICKER.src;
+    TARGET.drawImage(this.img, X, Y, WIDTH, HEIGHT);
+    if (this.mode === 'default') {
+      this.drawFrameLine(TARGET, X, Y, WIDTH, HEIGHT, COLOR, LINE_SIZE);
+      this.drawCornerMark(TARGET, X, Y, WIDTH, HEIGHT, LINE_SIZE, MARK_SIZE);
     }
   }
 
