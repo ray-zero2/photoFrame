@@ -1,6 +1,6 @@
-import Camera from './modules/cameraInCanvas';
-import Sticker from './modules/stickerInCanvas';
-import ImageEdit from './modules/canvasEditing';
+import Camera from './modules/CameraInCanvas';
+import Sticker from './modules/StickerInCanvas';
+import ImageEdit from './modules/CanvasEditing';
 class App {
   constructor() {
     this.camera = new Camera();
