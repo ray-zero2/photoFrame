@@ -6,6 +6,7 @@ class Sticker {
     this.height = 300;
     this.positionX = 300;
     this.positionY = 300;
+    this.aspect = 1; //アスペクト比
   }
 }
 export default class extends Events {
@@ -46,7 +47,6 @@ export default class extends Events {
     this.isDoubleTouched = false;
     this.activeSticker = null; //現在アクティブ状態のスタンプ
     this.inactiveStickers = []; //非アクティブ状態のスタンプを格納する配列
-    this.aspect = 1; //スタンプのアスペクト比
     this.clickPointProperty = 0; //スタンプのどの辺をクリックしたかを保持
     //現在処理をするスタンプの各辺の1次元座標
     this.left = 0;
@@ -545,12 +545,13 @@ export default class extends Events {
     //最小サイズ = RANGE_OFFSET*3
     const ADJUST_WIDTH = Math.max(width, this.RANGE_OFFSET * 3);
     const ADJUST_HEIGHT = Math.max(height, this.RANGE_OFFSET * 3);
+    const ASPECT = this.activeSticker.aspect;
     if (width >= height) {
       this.activeSticker.width = ADJUST_WIDTH;
-      this.activeSticker.height = ADJUST_WIDTH / this.aspect;
+      this.activeSticker.height = ADJUST_WIDTH / ASPECT;
     } else {
       this.activeSticker.height = ADJUST_HEIGHT;
-      this.activeSticker.width = ADJUST_HEIGHT * this.aspect;
+      this.activeSticker.width = ADJUST_HEIGHT * ASPECT;
     }
   }
 
