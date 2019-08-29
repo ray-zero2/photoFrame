@@ -13,7 +13,6 @@ export default class extends Events {
   }
 
   bind() {
-    //画面キャプチャ
     this.$captureButton.addEventListener('click', () => {
       this.renderCameraImageInCanvas();
     });
@@ -50,7 +49,6 @@ export default class extends Events {
     this.context.drawImage(this.$video, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
     this.$video.classList.add('js-hide');
     this.$captureButton.classList.add('js-hide');
-
     this.stopCamera();
     this.emit('renderCameraImage', this.context);
   }

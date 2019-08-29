@@ -34,8 +34,6 @@ export default class extends Events {
     this.imageWidth = this.$canvas.width;
     this.imageHeight = this.$canvas.height;
 
-    this.lastTranslateX = 0;
-    this.lastTranslateY = 0;
     this.lastScreenX = 0;
     this.lastScreenY = 0;
     this.diffX = 0;
@@ -119,8 +117,6 @@ export default class extends Events {
   resetValues() {
     this.isTouched = false;
     this.isDoubleTouched = false;
-    this.lastTranslateX = 0;
-    this.lastTranslateY = 0;
     this.diffX = 0;
     this.diffY = 0;
     this.lastScreenX = 0;
@@ -176,10 +172,9 @@ export default class extends Events {
       event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
     const CURRENT_Y =
       event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
+    //canvas内部の幅で計算した距離に変換
     this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
     this.moveImage();
     this.render();
     this.lastScreenX = CURRENT_X;
@@ -196,11 +191,9 @@ export default class extends Events {
     const CURRENT_Y = (Y2 + Y1) / 2;
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
-
+    //canvas内部の幅で計算した距離に変換
     this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationRatioX;
     this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationRatioY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
     this.resize(SCALE);
     this.moveImage();
     this.render();
@@ -216,15 +209,18 @@ export default class extends Events {
     const GEOMETRIC_CENTER_Y =
       this.positionY + (this.imageHeight * this.lastScale) / 2;
 
-    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - this.$canvas.width / 2; //150: キャンバスサイズの半分
-    const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - this.$canvas.height / 2;
+    const CANVAS_WIDTH = this.$canvas.width;
+    const CANVAS_HEIGHT = this.$canvas.height;
+
+    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - CANVAS_WIDTH / 2; //150: キャンバスサイズの半分
+    const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - CANVAS_HEIGHT / 2;
 
     this.renderWidth = this.imageWidth * CURRENT_SCALE;
     this.renderHeight = this.imageHeight * CURRENT_SCALE;
     this.positionX =
-      SCALE * CENTER_DIFF_X - this.renderWidth / 2 + this.$canvas.width / 2;
+      SCALE * CENTER_DIFF_X - this.renderWidth / 2 + CANVAS_WIDTH / 2;
     this.positionY =
-      SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + this.$canvas.height / 2;
+      SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + CANVAS_HEIGHT / 2;
     this.lastScale = CURRENT_SCALE;
     // this.adjustPosition();
   }
@@ -234,7 +230,6 @@ export default class extends Events {
     this.positionY += this.diffY;
     this.renderWidth = this.imageWidth * this.lastScale;
     this.renderHeight = this.imageHeight * this.lastScale;
-    // this.adjustPosition();
   }
 
   adjustPosition() {

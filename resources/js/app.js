@@ -8,15 +8,12 @@ class App {
     //キャンバス
     this.$canvas = document.querySelector('.canvas');
     this.context = this.$canvas.getContext('2d');
-
     // //変数等
     this.originalImage = null;
-
     this.bind();
   }
 
   bind() {
-    //画面キャプチャ
     this.camera.on('renderCameraImage', canvasData => {
       this.originalImage = canvasData.getImageData(
         0,

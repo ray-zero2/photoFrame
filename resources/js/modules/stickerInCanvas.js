@@ -42,6 +42,8 @@ export default class extends Events {
     this.lastOffsetX = 0;
     this.lastOffsetY = 0;
     this.isStickerTouched = false;
+    this.isTouched = false;
+    this.isDoubleTouched = false;
     this.activeSticker = null; //現在アクティブ状態のスタンプ
     this.inactiveStickers = []; //非アクティブ状態のスタンプを格納する配列
     this.aspect = 1; //スタンプのアスペクト比
@@ -135,12 +137,14 @@ export default class extends Events {
   }
 
   handleMouseDown(event) {
+    //予めcanvas内部の幅でのoffsetに変換しておく
     const OFFSET_X = event.offsetX * this.magnificationX;
     const OFFSET_Y = event.offsetY * this.magnificationY;
     this.singleTouchStart(OFFSET_X, OFFSET_Y);
   }
 
   handleMouseMove(event) {
+    //予めcanvas内部の幅でのoffsetに変換しておく
     const OFFSET_X = event.offsetX * this.magnificationX;
     const OFFSET_Y = event.offsetY * this.magnificationY;
     this.singleTouchMove(OFFSET_X, OFFSET_Y);
@@ -151,25 +155,19 @@ export default class extends Events {
   }
 
   handleTouchStart(event) {
-    const RECT = event.target.getBoundingClientRect();
-    const OFFSET_X =
-      (event.touches[0].clientX - window.pageXOffset - RECT.left) *
-      this.magnificationX;
-    const OFFSET_Y =
-      (event.touches[0].clientY - window.pageYOffset - RECT.top) *
-      this.magnificationY;
+    const OFFSET_OBJ1 = this.calcOffsetObject(event.touches[0]);
     event.preventDefault();
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchStart(OFFSET_X, OFFSET_Y);
+      this.singleTouchStart(OFFSET_OBJ1.x, OFFSET_OBJ1.y);
     } else {
-      const OFFSET_X2 =
-        (event.touches[1].clientX - window.pageXOffset - RECT.left) *
-        this.magnificationX;
-      const OFFSET_Y2 =
-        (event.touches[1].clientY - window.pageYOffset - RECT.top) *
-        this.magnificationY;
-      this.doubleTouchStart(OFFSET_X, OFFSET_Y, OFFSET_X2, OFFSET_Y2);
+      const OFFSET_OBJ2 = this.calcOffsetObject(event.touches[1]);
+      this.doubleTouchStart(
+        OFFSET_OBJ1.x,
+        OFFSET_OBJ1.y,
+        OFFSET_OBJ2.x,
+        OFFSET_OBJ2.y
+      );
       this.isDoubleTouched = true;
     }
     this.isTouched = true;
@@ -177,25 +175,36 @@ export default class extends Events {
 
   handleTouchMove(event) {
     if (!this.isTouched) return;
-    const RECT = event.target.getBoundingClientRect();
-    const OFFSET_X =
-      (event.touches[0].clientX - window.pageXOffset - RECT.left) *
-      this.magnificationX;
-    const OFFSET_Y =
-      (event.touches[0].clientY - window.pageYOffset - RECT.top) *
-      this.magnificationY;
+    const OFFSET_OBJ1 = this.calcOffsetObject(event.touches[0]);
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchMove(OFFSET_X, OFFSET_Y);
+      this.singleTouchMove(OFFSET_OBJ1.x, OFFSET_OBJ1.y);
     } else if (TOUCHES_ARRAY.length >= 2 && this.isDoubleTouched) {
-      const OFFSET_X2 =
-        (event.touches[1].clientX - window.pageXOffset - RECT.left) *
-        this.magnificationX;
-      const OFFSET_Y2 =
-        (event.touches[1].clientY - window.pageYOffset - RECT.top) *
-        this.magnificationY;
-      this.doubleTouchMove(OFFSET_X, OFFSET_Y, OFFSET_X2, OFFSET_Y2);
+      const OFFSET_OBJ2 = this.calcOffsetObject(event.touches[1]);
+      this.doubleTouchMove(
+        OFFSET_OBJ1.x,
+        OFFSET_OBJ1.y,
+        OFFSET_OBJ2.x,
+        OFFSET_OBJ2.y
+      );
     }
+  }
+
+  /**
+   * touch eventからoffsetを計算して返す
+   * @param {object} touches event.touchesの配列で計算したい指の要素
+   * @return {object} 計算されたoffsetX,offsetY
+   */
+  calcOffsetObject(touches) {
+    const RECT = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      (touches.clientX - window.pageXOffset - RECT.left) * this.magnificationX;
+    const OFFSET_Y =
+      (touches.clientY - window.pageYOffset - RECT.top) * this.magnificationY;
+    return {
+      x: OFFSET_X,
+      y: OFFSET_Y
+    };
   }
 
   handleTouchEnd() {
@@ -213,7 +222,7 @@ export default class extends Events {
     if (this.isStickerTouched === false) return;
     if (TOUCHED_STICKER.type === 'active') {
       //拡大縮小を行うために各辺がクリックされたかも調べる
-      this.judgeClickOnTheLine(OFFSET_X, OFFSET_Y);
+      this.judgeClickOnTheLine();
     } else if (TOUCHED_STICKER.type === 'inactive') {
       //クリックされたスタンプをアクティブにして背景の再描画
       this.activateTouchedSticker(TOUCHED_STICKER.index);
@@ -228,8 +237,6 @@ export default class extends Events {
     const CURRENT_Y = OFFSET_Y;
     this.diffX = CURRENT_X - this.lastOffsetX;
     this.diffY = CURRENT_Y - this.lastOffsetY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
     this.lastOffsetX = CURRENT_X;
     this.lastOffsetY = CURRENT_Y;
     this.operateSticker(event);
@@ -250,8 +257,6 @@ export default class extends Events {
     const SCALE = CURRENT_LENGTH / this.lastLength;
     this.diffX = CURRENT_X - this.lastOffsetX;
     this.diffY = CURRENT_Y - this.lastOffsetY;
-    this.lastTranslateX += this.diffX;
-    this.lastTranslateY += this.diffY;
     this.lastLength = CURRENT_LENGTH;
     this.lastOffsetX = CURRENT_X;
     this.lastOffsetY = CURRENT_Y;
@@ -332,16 +337,17 @@ export default class extends Events {
   judgeClickOnTheLine() {
     const OFFSET_X = this.lastOffsetX;
     const OFFSET_Y = this.lastOffsetY;
-    if (Math.abs(OFFSET_X - this.left) <= this.RANGE_OFFSET) {
+    const RANGE = this.RANGE_OFFSET;
+    if (Math.abs(OFFSET_X - this.left) <= RANGE) {
       this.clickPointProperty += this.LEFT_LINE;
     }
-    if (Math.abs(OFFSET_X - this.right) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_X - this.right) <= RANGE) {
       this.clickPointProperty += this.RIGHT_LINE;
     }
-    if (Math.abs(OFFSET_Y - this.bottom) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_Y - this.bottom) <= RANGE) {
       this.clickPointProperty += this.BOTTOM_LINE;
     }
-    if (Math.abs(OFFSET_Y - this.top) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_Y - this.top) <= RANGE) {
       this.clickPointProperty += this.TOP_LINE;
     }
   }
@@ -545,6 +551,9 @@ export default class extends Events {
     this.activeSticker = NEW_STICKER;
   }
 
+  /**
+   * 背景スクリーンとアクティブなスタンプの描画
+   */
   render() {
     const WIDTH = this.$canvas.width;
     const HEIGHT = this.$canvas.height;
@@ -557,14 +566,20 @@ export default class extends Events {
     this.context.drawImage(this.$offScreen, 0, 0, WIDTH, HEIGHT);
   }
 
+  /**
+   * アクティブなスタンプを描画する
+   */
   drawActiveSticker() {
+    if (this.activeSticker === null) return;
     const MAGNIFICATION = Math.max(this.magnificationX, this.magnificationY);
-    const COLOR = 'white';
-    const MARK_SIZE = 3 * MAGNIFICATION;
-    const LINE_SIZE = 1 * MAGNIFICATION;
+    const DRAW_OPTIONS = {
+      color: 'white',
+      markSize: 3 * MAGNIFICATION,
+      lineSize: 1 * MAGNIFICATION
+    };
     const ACTIVE_STICKER = this.activeSticker;
     const TARGET = this.offScreenContext;
-    this.drawSticker(TARGET, ACTIVE_STICKER, COLOR, LINE_SIZE, MARK_SIZE);
+    this.drawSticker(TARGET, ACTIVE_STICKER, DRAW_OPTIONS);
   }
 
   /**
@@ -573,9 +588,11 @@ export default class extends Events {
    */
   setBackGroundOffscreen() {
     const MAGNIFICATION = Math.max(this.magnificationX, this.magnificationY);
-    const COLOR = 'grey';
-    const MARK_SIZE = 2 * MAGNIFICATION;
-    const LINE_SIZE = 1 * MAGNIFICATION;
+    const DRAW_OPTIONS = {
+      color: 'grey',
+      markSize: 2 * MAGNIFICATION,
+      lineSize: 1 * MAGNIFICATION
+    };
     const INACTIVE_STICKERS = this.inactiveStickers;
     const TARGET = this.bgOffscreenContext;
 
@@ -583,11 +600,14 @@ export default class extends Events {
     TARGET.putImageData(this.backgroundImage, 0, 0);
     //スタンプの配列を描画
     INACTIVE_STICKERS.forEach(inactiveSticker => {
-      this.drawSticker(TARGET, inactiveSticker, COLOR, LINE_SIZE, MARK_SIZE);
+      this.drawSticker(TARGET, inactiveSticker, DRAW_OPTIONS);
     });
   }
 
-  drawSticker(TARGET, STICKER, COLOR, LINE_SIZE, MARK_SIZE) {
+  /**
+   * ターゲットにスタンプを描画
+   */
+  drawSticker(TARGET, STICKER, DRAW_OPTIONS) {
     const X = STICKER.positionX;
     const Y = STICKER.positionY;
     const WIDTH = STICKER.width;
@@ -595,30 +615,36 @@ export default class extends Events {
     this.img.src = STICKER.src;
     TARGET.drawImage(this.img, X, Y, WIDTH, HEIGHT);
     if (this.mode === 'default') {
-      this.drawFrameLine(TARGET, X, Y, WIDTH, HEIGHT, COLOR, LINE_SIZE);
-      this.drawCornerMark(TARGET, X, Y, WIDTH, HEIGHT, LINE_SIZE, MARK_SIZE);
+      this.drawFrameLine(TARGET, X, Y, WIDTH, HEIGHT, DRAW_OPTIONS);
+      this.drawCornerMark(TARGET, X, Y, WIDTH, HEIGHT, DRAW_OPTIONS);
     }
   }
 
-  drawFrameLine(TARGET, X, Y, WIDTH, HEIGHT, COLOR, LINE_SIZE) {
-    TARGET.strokeStyle = COLOR;
-    TARGET.lineWidth = LINE_SIZE;
+  /**
+   * スタンプ周りの枠線
+   */
+  drawFrameLine(TARGET, X, Y, WIDTH, HEIGHT, DRAW_OPTIONS) {
+    TARGET.strokeStyle = DRAW_OPTIONS.color;
+    TARGET.lineWidth = DRAW_OPTIONS.lineSize;
     TARGET.beginPath();
     TARGET.strokeRect(X, Y, WIDTH, HEIGHT);
   }
-  drawCornerMark(TARGET, X, Y, WIDTH, HEIGHT, LINE_SIZE, MARK_SIZE) {
+  /**
+   * スタンプ周りの角のマーク
+   */
+  drawCornerMark(TARGET, X, Y, WIDTH, HEIGHT, DRAW_OPTIONS) {
     TARGET.strokeStyle = 'black';
     TARGET.fillStyle = 'white';
-    this.drawArc(TARGET, X, Y, LINE_SIZE, MARK_SIZE);
-    this.drawArc(TARGET, X, Y + HEIGHT, LINE_SIZE, MARK_SIZE);
-    this.drawArc(TARGET, X + WIDTH, Y, LINE_SIZE, MARK_SIZE);
-    this.drawArc(TARGET, X + WIDTH, Y + HEIGHT, LINE_SIZE, MARK_SIZE);
+    this.drawArc(TARGET, X, Y, DRAW_OPTIONS);
+    this.drawArc(TARGET, X, Y + HEIGHT, DRAW_OPTIONS);
+    this.drawArc(TARGET, X + WIDTH, Y, DRAW_OPTIONS);
+    this.drawArc(TARGET, X + WIDTH, Y + HEIGHT, DRAW_OPTIONS);
   }
 
-  drawArc(TARGET, X, Y, LINE_SIZE, MARK_SIZE) {
-    TARGET.lineWidth = LINE_SIZE;
+  drawArc(TARGET, X, Y, DRAW_OPTIONS) {
+    TARGET.lineWidth = DRAW_OPTIONS.lineSize;
     TARGET.beginPath();
-    TARGET.arc(X, Y, MARK_SIZE, 0, Math.PI * 2, false);
+    TARGET.arc(X, Y, DRAW_OPTIONS.markSize, 0, Math.PI * 2, false);
     TARGET.stroke();
   }
 
