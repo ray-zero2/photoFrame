@@ -39,8 +39,8 @@ export default class extends Events {
 
     this.diffX = 0;
     this.diffY = 0;
-    this.lastScreenX = 0;
-    this.lastScreenY = 0;
+    this.lastOffsetX = 0;
+    this.lastOffsetY = 0;
     this.isStickerTouched = false;
     this.activeSticker = null; //現在アクティブ状態のスタンプ
     this.inactiveStickers = []; //非アクティブ状態のスタンプを格納する配列
@@ -135,11 +135,15 @@ export default class extends Events {
   }
 
   handleMouseDown(event) {
-    this.singleTouchStart(event);
+    const OFFSET_X = event.offsetX * this.magnificationX;
+    const OFFSET_Y = event.offsetY * this.magnificationY;
+    this.singleTouchStart(OFFSET_X, OFFSET_Y);
   }
 
   handleMouseMove(event) {
-    this.singleTouchMove(event);
+    const OFFSET_X = event.offsetX * this.magnificationX;
+    const OFFSET_Y = event.offsetY * this.magnificationY;
+    this.singleTouchMove(OFFSET_X, OFFSET_Y);
   }
 
   handleMouseUp() {
@@ -147,12 +151,25 @@ export default class extends Events {
   }
 
   handleTouchStart(event) {
-    const TOUCHES_ARRAY = event.touches;
+    const RECT = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      (event.touches[0].clientX - window.pageXOffset - RECT.left) *
+      this.magnificationX;
+    const OFFSET_Y =
+      (event.touches[0].clientY - window.pageYOffset - RECT.top) *
+      this.magnificationY;
     event.preventDefault();
+    const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchStart(event);
+      this.singleTouchStart(OFFSET_X, OFFSET_Y);
     } else {
-      this.doubleTouchStart(event);
+      const OFFSET_X2 =
+        (event.touches[1].clientX - window.pageXOffset - RECT.left) *
+        this.magnificationX;
+      const OFFSET_Y2 =
+        (event.touches[1].clientY - window.pageYOffset - RECT.top) *
+        this.magnificationY;
+      this.doubleTouchStart(OFFSET_X, OFFSET_Y, OFFSET_X2, OFFSET_Y2);
       this.isDoubleTouched = true;
     }
     this.isTouched = true;
@@ -160,11 +177,24 @@ export default class extends Events {
 
   handleTouchMove(event) {
     if (!this.isTouched) return;
+    const RECT = event.target.getBoundingClientRect();
+    const OFFSET_X =
+      (event.touches[0].clientX - window.pageXOffset - RECT.left) *
+      this.magnificationX;
+    const OFFSET_Y =
+      (event.touches[0].clientY - window.pageYOffset - RECT.top) *
+      this.magnificationY;
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchMove(event);
+      this.singleTouchMove(OFFSET_X, OFFSET_Y);
     } else if (TOUCHES_ARRAY.length >= 2 && this.isDoubleTouched) {
-      this.doubleTouchMove(event);
+      const OFFSET_X2 =
+        (event.touches[1].clientX - window.pageXOffset - RECT.left) *
+        this.magnificationX;
+      const OFFSET_Y2 =
+        (event.touches[1].clientY - window.pageYOffset - RECT.top) *
+        this.magnificationY;
+      this.doubleTouchMove(OFFSET_X, OFFSET_Y, OFFSET_X2, OFFSET_Y2);
     }
   }
 
@@ -175,24 +205,11 @@ export default class extends Events {
     this.isDoubleTouched = false;
   }
 
-  singleTouchStart(event) {
-    const RECT = event.target.getBoundingClientRect();
-    const OFFSET_X =
-      (event.type === 'touchstart'
-        ? event.touches[0].clientX - window.pageXOffset - RECT.left
-        : event.offsetX) * this.magnificationX;
-    const OFFSET_Y =
-      (event.type === 'touchstart'
-        ? event.touches[0].clientY - window.pageYOffset - RECT.top
-        : event.offsetY) * this.magnificationY;
-    const START_X =
-      event.type === 'touchstart' ? event.touches[0].screenX : event.screenX;
-    const START_Y =
-      event.type === 'touchstart' ? event.touches[0].screenY : event.screenY;
-    this.lastScreenX = START_X;
-    this.lastScreenY = START_Y;
+  singleTouchStart(OFFSET_X, OFFSET_Y) {
+    this.lastOffsetX = OFFSET_X;
+    this.lastOffsetY = OFFSET_Y;
 
-    const TOUCHED_STICKER = this.getClickedStickerProperty(OFFSET_X, OFFSET_Y);
+    const TOUCHED_STICKER = this.getClickedStickerProperty();
     if (this.isStickerTouched === false) return;
     if (TOUCHED_STICKER.type === 'active') {
       //拡大縮小を行うために各辺がクリックされたかも調べる
@@ -205,55 +222,42 @@ export default class extends Events {
     this.render();
   }
 
-  singleTouchMove(event) {
+  singleTouchMove(OFFSET_X, OFFSET_Y) {
     if (this.isStickerTouched === false) return;
-    const CURRENT_X =
-      event.type === 'touchmove' ? event.touches[0].screenX : event.screenX;
-    const CURRENT_Y =
-      event.type === 'touchmove' ? event.touches[0].screenY : event.screenY;
-    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationX;
-    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationY;
+    const CURRENT_X = OFFSET_X;
+    const CURRENT_Y = OFFSET_Y;
+    this.diffX = CURRENT_X - this.lastOffsetX;
+    this.diffY = CURRENT_Y - this.lastOffsetY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
+    this.lastOffsetX = CURRENT_X;
+    this.lastOffsetY = CURRENT_Y;
     this.operateSticker(event);
     this.render();
-    this.lastScreenX = CURRENT_X;
-    this.lastScreenY = CURRENT_Y;
   }
 
-  doubleTouchStart(event) {
-    const TOUCHES_ARRAY = event.touches;
-    const X1 = TOUCHES_ARRAY[0].screenX;
-    const X2 = TOUCHES_ARRAY[1].screenX;
-    const Y1 = TOUCHES_ARRAY[0].screenY;
-    const Y2 = TOUCHES_ARRAY[1].screenY;
-    this.lastScreenX = (X1 + X2) / 2;
-    this.lastScreenY = (Y1 + Y2) / 2;
+  doubleTouchStart(X1, Y1, X2, Y2) {
+    this.lastOffsetX = (X1 + X2) / 2;
+    this.lastOffsetY = (Y1 + Y2) / 2;
     this.lastLength = Math.hypot(X2 - X1, Y2 - Y1);
     this.isDoubleTouched = true;
   }
 
-  doubleTouchMove(event) {
-    const TOUCHES_ARRAY = event.touches;
-    const X1 = TOUCHES_ARRAY[0].screenX;
-    const X2 = TOUCHES_ARRAY[1].screenX;
-    const Y1 = TOUCHES_ARRAY[0].screenY;
-    const Y2 = TOUCHES_ARRAY[1].screenY;
+  doubleTouchMove(X1, Y1, X2, Y2) {
     const CURRENT_X = (X1 + X2) / 2;
     const CURRENT_Y = (Y1 + Y2) / 2;
     const CURRENT_LENGTH = Math.hypot(X2 - X1, Y2 - Y1);
     const SCALE = CURRENT_LENGTH / this.lastLength;
-
-    this.diffX = (CURRENT_X - this.lastScreenX) * this.magnificationX;
-    this.diffY = (CURRENT_Y - this.lastScreenY) * this.magnificationY;
+    this.diffX = CURRENT_X - this.lastOffsetX;
+    this.diffY = CURRENT_Y - this.lastOffsetY;
     this.lastTranslateX += this.diffX;
     this.lastTranslateY += this.diffY;
+    this.lastLength = CURRENT_LENGTH;
+    this.lastOffsetX = CURRENT_X;
+    this.lastOffsetY = CURRENT_Y;
     this.pinchZoomSticker(SCALE);
     this.moveSticker();
     this.render();
-    this.lastLength = CURRENT_LENGTH;
-    this.lastScreenX = CURRENT_X;
-    this.lastScreenY = CURRENT_Y;
   }
 
   /**
@@ -262,12 +266,11 @@ export default class extends Events {
    * @param {number} OFFSET_Y クリック位置のoffset Y
    * @return {object} クリックされたスタンプの種類とインデックス番号
    */
-  getClickedStickerProperty(OFFSET_X, OFFSET_Y) {
+  getClickedStickerProperty() {
     const ACTIVE_STICKER = this.activeSticker;
-    const RANGE = this.RANGE_OFFSET;
     //judge active sticker
     this.setLinePositions(ACTIVE_STICKER);
-    if (this.judgeStickerClicked(OFFSET_X, OFFSET_Y, RANGE)) {
+    if (this.judgeStickerClicked(this.RANGE_OFFSET)) {
       this.isStickerTouched = true;
       const STICKER_PROPERTY = {
         type: 'active',
@@ -281,7 +284,7 @@ export default class extends Events {
       for (let index = LAST_INDEX; index >= 0; index--) {
         const INACTIVE_STICKER = this.inactiveStickers[index];
         this.setLinePositions(INACTIVE_STICKER);
-        if (this.judgeStickerClicked(OFFSET_X, OFFSET_Y)) {
+        if (this.judgeStickerClicked()) {
           this.isStickerTouched = true;
           const STICKER_PROPERTY = {
             type: 'inactive',
@@ -312,7 +315,9 @@ export default class extends Events {
    * @param {number} RANGE クリック範囲のオフセット
    * @return {boolean} スタンプをクリックしているかどうか
    */
-  judgeStickerClicked(OFFSET_X, OFFSET_Y, RANGE = 0) {
+  judgeStickerClicked(RANGE = 0) {
+    const OFFSET_X = this.lastOffsetX;
+    const OFFSET_Y = this.lastOffsetY;
     return (
       this.left - RANGE <= OFFSET_X &&
       OFFSET_X <= this.right + RANGE &&
@@ -324,17 +329,19 @@ export default class extends Events {
   /**
    * アクティブなスタンプのライン上がクリックされたかどうかを調べ、そのクリック箇所を割り出す
    */
-  judgeClickOnTheLine(offsetX, offsetY) {
-    if (Math.abs(offsetX - this.left) <= this.RANGE_OFFSET) {
+  judgeClickOnTheLine() {
+    const OFFSET_X = this.lastOffsetX;
+    const OFFSET_Y = this.lastOffsetY;
+    if (Math.abs(OFFSET_X - this.left) <= this.RANGE_OFFSET) {
       this.clickPointProperty += this.LEFT_LINE;
     }
-    if (Math.abs(offsetX - this.right) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_X - this.right) <= this.RANGE_OFFSET) {
       this.clickPointProperty += this.RIGHT_LINE;
     }
-    if (Math.abs(offsetY - this.bottom) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_Y - this.bottom) <= this.RANGE_OFFSET) {
       this.clickPointProperty += this.BOTTOM_LINE;
     }
-    if (Math.abs(offsetY - this.top) <= this.RANGE_OFFSET) {
+    if (Math.abs(OFFSET_Y - this.top) <= this.RANGE_OFFSET) {
       this.clickPointProperty += this.TOP_LINE;
     }
   }
@@ -342,21 +349,11 @@ export default class extends Events {
   /**
    * ステッカーのクリックした箇所に対応する処理を実行
    */
-  operateSticker(event) {
-    const RECT = event.target.getBoundingClientRect();
-    const OFFSET_X =
-      (event.type === 'touchmove'
-        ? event.touches[0].clientX - window.pageXOffset - RECT.left
-        : event.offsetX) * this.magnificationX;
-    const OFFSET_Y =
-      (event.type === 'touchmove'
-        ? event.touches[0].clientY - window.pageYOffset - RECT.top
-        : event.offsetY) * this.magnificationY;
-
+  operateSticker() {
     if (this.clickPointProperty === 0) {
       this.moveSticker();
     } else {
-      this.resizeSticker(OFFSET_X, OFFSET_Y);
+      this.resizeSticker();
     }
   }
 
@@ -391,38 +388,38 @@ export default class extends Events {
     this.activeSticker.positionY -= DIFF_HEIGHT / 2;
   }
 
-  resizeSticker(offsetX, offsetY) {
+  resizeSticker() {
     switch (this.clickPointProperty) {
       case this.LEFT_TOP_POINT:
-        this.handleLeftTop(offsetX, offsetY);
+        this.handleLeftTop();
         break;
 
       case this.LEFT_BOTTOM_POINT:
-        this.handleLeftBottom(offsetX, offsetY);
+        this.handleLeftBottom();
         break;
 
       case this.RIGHT_BOTTOM_POINT:
-        this.handleRightBottom(offsetX, offsetY);
+        this.handleRightBottom();
         break;
 
       case this.RIGHT_TOP_POINT:
-        this.handleRightTop(offsetX, offsetY);
+        this.handleRightTop();
         break;
 
       case this.LEFT_LINE:
-        this.handleLeft(offsetX);
+        this.handleLeft();
         break;
 
       case this.BOTTOM_LINE:
-        this.handleBottom(offsetY);
+        this.handleBottom();
         break;
 
       case this.RIGHT_LINE:
-        this.handleRight(offsetX);
+        this.handleRight();
         break;
 
       case this.TOP_LINE:
-        this.handleTop(offsetY);
+        this.handleTop();
         break;
 
       default:
@@ -430,46 +427,45 @@ export default class extends Events {
     }
   }
 
-  handleLeftTop(offsetX, offsetY) {
-    // const STICKER = this.activeSticker;
+  handleLeftTop() {
     const RIGHT = this.right;
     const BOTTOM = this.bottom;
-    const WIDTH = RIGHT - offsetX;
-    const HEIGHT = BOTTOM - offsetY;
+    const WIDTH = RIGHT - this.lastOffsetX;
+    const HEIGHT = BOTTOM - this.lastOffsetY;
     this.adjustSize(WIDTH, HEIGHT);
     this.activeSticker.positionX = RIGHT - this.activeSticker.width;
     this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
-  handleLeftBottom(offsetX, offsetY) {
+  handleLeftBottom() {
     const STICKER = this.activeSticker;
     const RIGHT = this.right;
-    const WIDTH = RIGHT - offsetX;
-    const HEIGHT = offsetY - STICKER.positionY;
+    const WIDTH = RIGHT - this.lastOffsetX;
+    const HEIGHT = this.lastOffsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
     this.activeSticker.positionX = RIGHT - this.activeSticker.width;
   }
 
-  handleRightBottom(offsetX, offsetY) {
+  handleRightBottom() {
     const STICKER = this.activeSticker;
-    const WIDTH = offsetX - STICKER.positionX;
-    const HEIGHT = offsetY - STICKER.positionY;
+    const WIDTH = this.lastOffsetX - STICKER.positionX;
+    const HEIGHT = this.lastOffsetY - STICKER.positionY;
     this.adjustSize(WIDTH, HEIGHT);
   }
 
-  handleRightTop(offsetX, offsetY) {
+  handleRightTop() {
     const STICKER = this.activeSticker;
     const BOTTOM = this.bottom;
-    const WIDTH = offsetX - STICKER.positionX;
-    const HEIGHT = BOTTOM - offsetY;
+    const WIDTH = this.lastOffsetX - STICKER.positionX;
+    const HEIGHT = BOTTOM - this.lastOffsetY;
     this.adjustSize(WIDTH, HEIGHT);
     this.activeSticker.positionY = BOTTOM - this.activeSticker.height;
   }
 
-  handleLeft(offsetX) {
+  handleLeft() {
     const STICKER = this.activeSticker;
     const RIGHT = this.right;
-    const WIDTH = RIGHT - offsetX;
+    const WIDTH = RIGHT - this.lastOffsetX;
     const HEIGHT = STICKER.height;
     this.adjustSize(WIDTH, 0);
     const HEIGHT_AFTER = this.activeSticker.height;
@@ -478,19 +474,19 @@ export default class extends Events {
     this.activeSticker.positionY -= DIFF_HEIGHT / 2;
   }
 
-  handleBottom(offsetY) {
+  handleBottom() {
     const STICKER = this.activeSticker;
     const WIDTH = STICKER.width;
-    const HEIGHT = offsetY - STICKER.positionY;
+    const HEIGHT = this.lastOffsetY - STICKER.positionY;
     this.adjustSize(0, HEIGHT);
     const WIDTH_AFTER = this.activeSticker.width;
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
     this.activeSticker.positionX -= DIFF_WIDTH / 2;
   }
 
-  handleRight(offsetX) {
+  handleRight() {
     const STICKER = this.activeSticker;
-    const WIDTH = offsetX - STICKER.positionX;
+    const WIDTH = this.lastOffsetX - STICKER.positionX;
     const HEIGHT = STICKER.height;
     this.adjustSize(WIDTH, 0);
     const HEIGHT_AFTER = this.activeSticker.height;
@@ -498,11 +494,11 @@ export default class extends Events {
     this.activeSticker.positionY -= DIFF_HEIGHT / 2;
   }
 
-  handleTop(offsetY) {
+  handleTop() {
     const STICKER = this.activeSticker;
     const BOTTOM = this.bottom;
     const WIDTH = STICKER.width;
-    const HEIGHT = BOTTOM - offsetY;
+    const HEIGHT = BOTTOM - this.lastOffsetY;
     this.adjustSize(0, HEIGHT);
     const WIDTH_AFTER = this.activeSticker.width;
     const DIFF_WIDTH = WIDTH_AFTER - WIDTH;
