@@ -202,8 +202,8 @@ export default class extends Events {
     this.lastScreenY = CURRENT_Y;
   }
 
-  resize(SCALE) {
-    const CURRENT_SCALE = Math.max(this.lastScale * SCALE, 1);
+  resize(scale) {
+    const CURRENT_SCALE = Math.max(this.lastScale * scale, 1);
     const GEOMETRIC_CENTER_X =
       this.positionX + (this.imageWidth * this.lastScale) / 2;
     const GEOMETRIC_CENTER_Y =
@@ -218,11 +218,10 @@ export default class extends Events {
     this.renderWidth = this.imageWidth * CURRENT_SCALE;
     this.renderHeight = this.imageHeight * CURRENT_SCALE;
     this.positionX =
-      SCALE * CENTER_DIFF_X - this.renderWidth / 2 + CANVAS_WIDTH / 2;
+      scale * CENTER_DIFF_X - this.renderWidth / 2 + CANVAS_WIDTH / 2;
     this.positionY =
-      SCALE * CENTER_DIFF_Y - this.renderHeight / 2 + CANVAS_HEIGHT / 2;
+      scale * CENTER_DIFF_Y - this.renderHeight / 2 + CANVAS_HEIGHT / 2;
     this.lastScale = CURRENT_SCALE;
-    // this.adjustPosition();
   }
 
   moveImage() {
@@ -232,6 +231,9 @@ export default class extends Events {
     this.renderHeight = this.imageHeight * this.lastScale;
   }
 
+  /**
+   * 画像が常にキャンバス全体に表示されるように修正する
+   */
   adjustPosition() {
     const WIDTH = this.renderWidth;
     const HEIGHT = this.renderHeight;
