@@ -202,25 +202,30 @@ export default class extends Events {
     this.lastScreenY = CURRENT_Y;
   }
 
+  /**
+   * キャンバスの中心点から画像の中心点までの距離
+   */
   resize(scale) {
     const CURRENT_SCALE = Math.max(this.lastScale * scale, 1);
     const GEOMETRIC_CENTER_X =
       this.positionX + (this.imageWidth * this.lastScale) / 2;
     const GEOMETRIC_CENTER_Y =
       this.positionY + (this.imageHeight * this.lastScale) / 2;
-
     const CANVAS_WIDTH = this.$canvas.width;
     const CANVAS_HEIGHT = this.$canvas.height;
-
-    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - CANVAS_WIDTH / 2; //150: キャンバスサイズの半分
+    //キャンバス中心点から画像中心点までの距離
+    const CENTER_DIFF_X = GEOMETRIC_CENTER_X - CANVAS_WIDTH / 2;
     const CENTER_DIFF_Y = GEOMETRIC_CENTER_Y - CANVAS_HEIGHT / 2;
-
     this.renderWidth = this.imageWidth * CURRENT_SCALE;
     this.renderHeight = this.imageHeight * CURRENT_SCALE;
+
+    //scale * CENTER_DIFF : キャンバス中心点から画像中心点までの距離を伸ばす・縮める
+    //CANVAS_WIDTH / 2 : 距離の始点がキャンバス中心からになっているためキャンバス左上になるようずらす
+    //this.renderWidth / 2 : 画像中心点から左上の点になるように半分ずらす
     this.positionX =
-      scale * CENTER_DIFF_X - this.renderWidth / 2 + CANVAS_WIDTH / 2;
+      scale * CENTER_DIFF_X + CANVAS_WIDTH / 2 - this.renderWidth / 2;
     this.positionY =
-      scale * CENTER_DIFF_Y - this.renderHeight / 2 + CANVAS_HEIGHT / 2;
+      scale * CENTER_DIFF_Y + CANVAS_HEIGHT / 2 - this.renderHeight / 2;
     this.lastScale = CURRENT_SCALE;
   }
 
@@ -239,10 +244,10 @@ export default class extends Events {
     const HEIGHT = this.renderHeight;
     let x = this.positionX;
     let y = this.positionY;
-    x = Math.min(x, 0);
-    y = Math.min(y, 0);
-    x = Math.max(x, -(WIDTH - this.$canvas.width));
-    y = Math.max(y, -(HEIGHT - this.$canvas.height));
+    x = Math.min(x, 0); //画像左側の判定
+    y = Math.min(y, 0); //画像上側の判定
+    x = Math.max(x, -(WIDTH - this.$canvas.width)); //画像右側の判定
+    y = Math.max(y, -(HEIGHT - this.$canvas.height)); //画像下側の判定
     this.positionX = x;
     this.positionY = y;
   }

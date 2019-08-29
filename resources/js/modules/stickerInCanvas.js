@@ -178,19 +178,14 @@ export default class extends Events {
   }
 
   handleTouchStart(event) {
-    const OFFSET_OBJ1 = this.calcOffsetObject(event.touches[0]);
+    const OFFSET1 = this.calcOffsetObject(event.touches[0]);
     event.preventDefault();
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchStart(OFFSET_OBJ1.x, OFFSET_OBJ1.y);
+      this.singleTouchStart(OFFSET1.x, OFFSET1.y);
     } else {
-      const OFFSET_OBJ2 = this.calcOffsetObject(event.touches[1]);
-      this.doubleTouchStart(
-        OFFSET_OBJ1.x,
-        OFFSET_OBJ1.y,
-        OFFSET_OBJ2.x,
-        OFFSET_OBJ2.y
-      );
+      const OFFSET2 = this.calcOffsetObject(event.touches[1]);
+      this.doubleTouchStart(OFFSET1.x, OFFSET1.y, OFFSET2.x, OFFSET2.y);
       this.isDoubleTouched = true;
     }
     this.isTouched = true;
@@ -198,18 +193,13 @@ export default class extends Events {
 
   handleTouchMove(event) {
     if (!this.isTouched) return;
-    const OFFSET_OBJ1 = this.calcOffsetObject(event.touches[0]);
+    const OFFSET1 = this.calcOffsetObject(event.touches[0]);
     const TOUCHES_ARRAY = event.touches;
     if (TOUCHES_ARRAY.length === 1) {
-      this.singleTouchMove(OFFSET_OBJ1.x, OFFSET_OBJ1.y);
+      this.singleTouchMove(OFFSET1.x, OFFSET1.y);
     } else if (TOUCHES_ARRAY.length >= 2 && this.isDoubleTouched) {
-      const OFFSET_OBJ2 = this.calcOffsetObject(event.touches[1]);
-      this.doubleTouchMove(
-        OFFSET_OBJ1.x,
-        OFFSET_OBJ1.y,
-        OFFSET_OBJ2.x,
-        OFFSET_OBJ2.y
-      );
+      const OFFSET2 = this.calcOffsetObject(event.touches[1]);
+      this.doubleTouchMove(OFFSET1.x, OFFSET1.y, OFFSET2.x, OFFSET2.y);
     }
   }
 
@@ -293,7 +283,7 @@ export default class extends Events {
     const ACTIVE_STICKER = this.activeSticker;
     //judge active sticker
     this.setLinePositions(ACTIVE_STICKER);
-    if (this.judgeStickerClicked(this.RANGE_OFFSET)) {
+    if (this.judgeStickerClicked(this.RANGE_OFFSET) === true) {
       this.isStickerTouched = true;
       const STICKER_PROPERTY = {
         type: 'active',
@@ -307,7 +297,7 @@ export default class extends Events {
       for (let index = LAST_INDEX; index >= 0; index--) {
         const INACTIVE_STICKER = this.inactiveStickers[index];
         this.setLinePositions(INACTIVE_STICKER);
-        if (this.judgeStickerClicked()) {
+        if (this.judgeStickerClicked() === true) {
           this.isStickerTouched = true;
           const STICKER_PROPERTY = {
             type: 'inactive',
