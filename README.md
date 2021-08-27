@@ -2,7 +2,10 @@
 
 canvasの勉強用に制作(デザインは適当)。
 
-MacのChromeとiPhoneでの動作確認のみ。
+MacのChromeとiPhoneでの動作確認のみ
+
+## demo
+https://ray-zero2.github.io/photoFrame/public/index.html
 
 ## 概要
 
